@@ -5,7 +5,7 @@ Aerolito é uma linguagem de marcação baseada em YAML com influências da AIML
 RiveScript. A ideia é criar uma linguagem mais clara e fácil de se escrever (em
 contraste com a AIML) sem criar uma formato novo (como a RiveScript).
 
-Exemplo de uso:
+Exemplo de uso::
 
     from aerolito import Kernel
     kernel = Kernel('config.yml')
@@ -17,7 +17,7 @@ Definição do esquema
 --------------------
 
 A base de dados é dividida em vários arquivos, chamados de **arquivos de 
-conversação**. Esses arquivos possuem um esquema básico:
+conversação**. Esses arquivos possuem um esquema básico::
 
     version    : (Versão)
     name       : (Nome do tópico coberto pelo arquivo)
@@ -46,7 +46,7 @@ Os padrões de conversação podem conter as seguintes tags:
 - **post**: Ações que serão executadas depois do padrão ser aceito e uma 
   resposta for selecionada.
 
-Exemplo de um padrão de conversação:
+Exemplo de um padrão de conversação::
 
     patterns:
         - in:
@@ -64,7 +64,7 @@ Exemplos
 Sinônimos
 ~~~~~~~~~
 
-Aerolito:
+Aerolito::
 
     patterns:
         - in:
@@ -76,7 +76,7 @@ Aerolito:
           out:
             - Hi There!
 
-AIML:
+AIML::
 
     <category> 
     <pattern>HELLO</pattern> 
@@ -107,7 +107,7 @@ AIML:
 Knock Knock Joke
 ~~~~~~~~~~~~~~~~
 
-Aerolito:
+Aerolito::
 
     patterns:
         - in  : Knock Knock
@@ -122,7 +122,7 @@ Aerolito:
           out   : Ha ha very funny, <name>.
 
 
-AIML:
+AIML::
 
     <category>
     <pattern>KNOCK KNOCK</pattern>
