@@ -9,6 +9,10 @@ class TestLiteral(unittest.TestCase):
     def test_init(self):
         literal = self.getTarget(u'Olá <name>!')
         assert literal._value == u'Olá <name>!'
+
+    # def test_replace(self):
+    #     literal = self.getTarget(u'Oi <name>!')
+    #     assert literal.replace()
         
 if __name__ == '__main__':
     unittest.main()

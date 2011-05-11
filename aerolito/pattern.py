@@ -1,6 +1,39 @@
 # -*- coding: utf-8 -*-
 
 import re
+import random
+from aerolito import exceptions
+
+def replace(literal, environ):
+    """
+    Replace a literal value with variable in environ. 
+    
+    The vars replaced are in format <variablename>. If variablename is not 
+    defined, the value is replaced by an empty string.
+    """
+    session = environ['session'][environ['userid']]
+    p = '\<([\d|\s|\w]*)\>'
+    _vars = re.findall(p, unicode(literal._value), re.I)
+
+    result = literal._value
+    for var in _vars:
+        # star
+        temp = var.split()
+        varname = temp[0]
+        params = temp[1:]
+        
+        if varname == 'star':
+            index = int(params[0]) if params else 0
+            result = result.replace('<%s>'%var, session['stars'][index])
+        elif varname in environ['globals']:
+            result = result.replace('<%s>'%var, environ['globals'][varname])
+        elif varname in session['locals']:
+            result = result.replace('<%s>'%var, session['locals'][varname])
+        else:
+            result = result.replace('<%s>'%var, '')
+
+    return result
+
 
 class Literal(object):
     """
@@ -18,20 +51,21 @@ class Action(object):
     Actions are the link between aerolito and python function.
     """
 
-    def __init__(self, function):
+    def __init__(self, function, params):
         """
-        Constructor receive a python function.
+        Constructor receive a python function and a params (list of literals)
         """
         self._function = function
+        self._params = params
 
-    def run(self, params):
+    def run(self, params, environ):
         """
         Execute the ``function`` applying ``params``.
 
         The ``params`` is a list/tuple of values, these values are given in 
         discussion files (.yml)
         """
-        return self._function(*params)
+        return self._function(*params, environ=environ)
 
 
 class Regex(object):
@@ -71,35 +105,121 @@ class Regex(object):
 
 
 class Pattern(object):
-    _after = None # Regex list
-    _in = None # Regex list
-    _when = None # Action list
-    _out = None # Literal list
-    _post = None # Action list
+    """
+    Represents a conversation pattern.
+    """
 
-"""
-class Literal:
-    _value
+    def __init__(self, p, environ):
+        self._after = self.__convertRegex(p, 'after')
+        self._in = self.__convertRegex(p, 'in')
+        self._out = self.__convertLiteral(p, 'out')
+        self._when = self.__convertAction(p, 'when', environ)
+        self._post = self.__convertAction(p, 'post', environ)
 
-class Regex:
-    _expression
-    _stars
-    __call__() : bool
+        self._stars = None
 
-class Action:
-    _function
-    __call__()
+    def __convertRegex(self, p, tag):
+        if p.has_key(tag):
+            tagValues = p[tag]
+            if tagValues is None or tagValues == u'':
+                raise exceptions.InvalidTagValueException(
+                                    'Invalid value for tag %s.'%tag)
 
-class Pattern:
-    _after = Regex list
-    _in = Regex list
-    _when = Action list
-    _out = Literal list
-    _post = Action list
+            if isinstance(tagValues, (tuple, list)):
+                return [Regex(unicode(x)) for x in tagValues]
+            else:
+                return [Regex(unicode(tagValues))]
+        else:
+            return None
+
+    def __convertLiteral(self, p, tag):
+        if p.has_key(tag):
+            tagValues = p[tag]
+            if tagValues is None or tagValues == u'':
+                raise exceptions.InvalidTagValueException(
+                                    'Invalid value for tag %s.'%tag)
+
+            if isinstance(tagValues, (tuple, list)):
+                return [Literal(unicode(x)) for x in tagValues]
+            else:
+                return [Literal(unicode(tagValues))]
+        else:
+            return None
+
+    def __convertAction(self, p, tag, environ):
+        if p.has_key(tag):
+            tagValues = p[tag]
+            actions = []
+
+            if isinstance(tagValues, (tuple, list)):
+                for d in tagValues:
+                    for k, p in d.iteritems():
+                        if isinstance(p, (tuple, list)):
+                            params = [Literal(x) for x in p]
+                        else:
+                            params = [Literal(p)]
+                        action = Action(environ['directives'][k], params)
+                        actions.append(action)
+            elif isinstance(tagValues, dict):
+                for k, p in tagValues.iteritems():
+                    if isinstance(p, (tuple, list)):
+                        params = [Literal(x) for x in p]
+                    else:
+                        params = [Literal(p)]
+                    action = Action(environ['directives'][k], params)
+                    actions.append(action)
+            else:
+                raise exceptions.InvalidTagValueException(
+                                    'Invalid value for tag %s.'%tag)
+            
+            return actions
+        else:
+            return None
 
 
-class Kernel:
-    __init__()
-    load()
-    respond()
-"""
+    def match(self, value, environ):
+        self._stars = None
+        session = environ['session'][environ['userid']]
+
+        if self._after:
+            for regex in self._after:
+                if regex.match(environ['lastresponse']):
+                    self._stars = regex._stars
+                    session['stars'] = regex._stars
+                    break
+            else:
+                return False
+
+        if self._in:
+            for regex in self._in:
+                if regex.match(value):
+                    self._stars = regex._stars
+                    session['stars'] = regex._stars
+                    break
+            else:
+                return False
+
+        if self._when:
+            for action in self._when:
+                if action._params:
+                    params = [replace(x, environ) for x in action._params]
+                else:
+                    params = []
+
+                if not action.run(params, environ=environ):
+                    return False
+        
+        return True
+
+    def choiceOutput(self, environ):
+        return replace(random.choice(self._out), environ)
+    
+    def executePost(self, environ):
+        if self._post:
+            for action in self._post:
+                if action._params:
+                    params = [replace(x, environ) for x in action._params]
+                else:
+                    params = []
+
+                action.run(params, environ=environ)

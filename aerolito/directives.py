@@ -11,6 +11,10 @@ class Define(Directive):
     def run(self, variable, value):
         pass
 
+class IsDefined(Directive):
+    def run(self, variable, value):
+        pass
+
 class Equal(Directive):
     def run(self, *variables):
         pass
