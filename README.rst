@@ -7,8 +7,6 @@ contraste com a AIML) sem criar uma formato novo (como a RiveScript).
 
 Exemplo de uso:
 
-.. code-block:: python
-
     from aerolito import Kernel
     kernel = Kernel('config.yml')
 
@@ -20,8 +18,6 @@ Definição do esquema
 
 A base de dados é dividida em vários arquivos, chamados de **arquivos de 
 conversação**. Esses arquivos possuem um esquema básico:
-
-.. code-block:: yaml
 
     version    : (Versão)
     name       : (Nome do tópico coberto pelo arquivo)
@@ -52,8 +48,6 @@ Os padrões de conversação podem conter as seguintes tags:
 
 Exemplo de um padrão de conversação:
 
-.. code-block:: yaml
-
     patterns:
         - in:
             - Hello
@@ -72,8 +66,6 @@ Sinônimos
 
 Aerolito:
 
-.. code-block:: yaml
-
     patterns:
         - in:
             - Hello
@@ -85,8 +77,6 @@ Aerolito:
             - Hi There!
 
 AIML:
-
-.. code-block:: xml
 
     <category> 
     <pattern>HELLO</pattern> 
@@ -119,8 +109,6 @@ Knock Knock Joke
 
 Aerolito:
 
-.. code-block:: yaml
-
     patterns:
         - in  : Knock Knock
           out : Who is there?
@@ -135,8 +123,6 @@ Aerolito:
 
 
 AIML:
-
-.. code-block:: xml
 
     <category>
     <pattern>KNOCK KNOCK</pattern>
