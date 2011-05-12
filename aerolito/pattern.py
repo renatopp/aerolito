@@ -135,22 +135,42 @@ class Regex(object):
 class Pattern(object):
     """
     Representa um padrão de conversação.
+
+    Um padrão é dividido em 5 tags, usadas na seguinte ordem:
+
+    1. **after**: Condição para selecionar o padrão. O valor da tag é comparado
+       com a última resposta, se for associado então o padrão é válido.
+    2. **in**: Condição para selecionar o padrão. O valor da tag é comparado com
+       a entrada do usuário.
+    3. **when**: Condição para selecionar o padrão. É um conjunto de ações que
+       devem retornar uma valor verdadeiro para que o padrão seja aceito.
+    4. **out**: Valores de retorno, são as respostas para o usuário.
+    5. **post**: Conjunto de ações que são executadas depois de um padrão ser 
+       aceito e uma resposta ser selecionada.
     """
 
     def __init__(self, p, environ):
+        """
+        Receve um dicionário ``p`` com as tags (vem do arquivo de conversação) e
+        a variável ``_environ``.
+        """
         self._after = self.__convertRegex(p, 'after')
         self._in = self.__convertRegex(p, 'in')
         self._out = self.__convertLiteral(p, 'out')
         self._when = self.__convertAction(p, 'when', environ)
         self._post = self.__convertAction(p, 'post', environ)
 
-        self._stars = None
-
     def __convertRegex(self, p, tag):
+        """
+        Converte para Regex os valores de uma tag ``tag`` dentro do dicionário
+        ``p``. 
+
+        Aceita uma lista de strings ou uma string.
+        """
         if p.has_key(tag):
             tagValues = p[tag]
             if tagValues is None or tagValues == u'':
-                raise exceptions.InvalidTagValueException(
+                raise exceptions.InvalidTagValue(
                                     'Invalid value for tag %s.'%tag)
 
             if isinstance(tagValues, (tuple, list)):
@@ -161,10 +181,16 @@ class Pattern(object):
             return None
 
     def __convertLiteral(self, p, tag):
+        """
+        Converte para Literal os valores de uma tag ``tag`` dentro do dicionário
+        ``p``. 
+
+        Aceita uma lista de strings ou uma string.
+        """
         if p.has_key(tag):
             tagValues = p[tag]
             if tagValues is None or tagValues == u'':
-                raise exceptions.InvalidTagValueException(
+                raise exceptions.InvalidTagValue(
                                     'Invalid value for tag %s.'%tag)
 
             if isinstance(tagValues, (tuple, list)):
@@ -175,6 +201,16 @@ class Pattern(object):
             return None
 
     def __convertAction(self, p, tag, environ):
+        """
+        Converte para Action os valores de uma tag ``tag`` dentro do dicionário
+        ``p``. A action só é criada quando existir uma directive correspondente,
+        se a directive não existir uma exceção ``InvalidTagValue`` é
+        lançada.
+
+        Aceita uma lista de dicionarios ou um dicionario. O(s) dicionário(s) 
+        pode(m) ter mais de uma chave (chave é o nome da directive) onde os 
+        valores das chaves são os parâmetros.
+        """
         if p.has_key(tag):
             tagValues = p[tag]
             actions = []
@@ -186,6 +222,11 @@ class Pattern(object):
                             params = [Literal(x) for x in p]
                         else:
                             params = [Literal(p)]
+                        
+                        if k not in environ['directives']:
+                            raise exceptions.InvalidTagValue(
+                                    u'Directive "%s" not found'%str(k))
+
                         action = Action(environ['directives'][k], params)
                         actions.append(action)
             elif isinstance(tagValues, dict):
@@ -194,11 +235,16 @@ class Pattern(object):
                         params = [Literal(x) for x in p]
                     else:
                         params = [Literal(p)]
+
+                    if k not in environ['directives']:
+                            raise exceptions.InvalidTagValue(
+                                    u'Directive "%s" not found'%str(k))
+                    
                     action = Action(environ['directives'][k], params)
                     actions.append(action)
             else:
-                raise exceptions.InvalidTagValueException(
-                                    'Invalid value for tag %s.'%tag)
+                raise exceptions.InvalidTagValue(
+                                    u'Invalid value for tag %s.'%tag)
             
             return actions
         else:
@@ -206,15 +252,23 @@ class Pattern(object):
 
 
     def match(self, value, environ):
+        """
+        Verifica se o ``value`` é associado com o padrão. A sequência de 
+        verificação é a seguinte:
+
+        1. Tag After: Pelo menos um elemento da tag deve ser associada com a 
+           última resposta.
+        2. Tag In: Pelo menos um elemento da tag deve ser associada com o 
+           ``value``.
+        3. Tag When: Todas ações da tag devem retornar um valor verdadeiro.
+        """
         self._stars = None
         session = environ['session'][environ['userid']]
 
         if self._after:
             for regex in self._after:
                 if session['responses'] and \
-                   session['responses'][-1] is not None and \
                    regex.match(session['responses'][-1]):
-                    self._stars = regex._stars
                     session['stars'] = regex._stars
                     break
             else:
@@ -223,7 +277,6 @@ class Pattern(object):
         if self._in:
             for regex in self._in:
                 if regex.match(value):
-                    self._stars = regex._stars
                     session['stars'] = regex._stars
                     break
             else:
@@ -237,9 +290,15 @@ class Pattern(object):
         return True
 
     def choiceOutput(self, environ):
+        """
+        Escolhe uma resposta aleatória, substituindo as variaveis necessárias.
+        """
         return replace(random.choice(self._out), environ)
     
     def executePost(self, environ):
+        """
+        Executa as ações da tag post.
+        """
         if self._post:
             for action in self._post:
                 action.run(environ=environ)

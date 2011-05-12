@@ -1,5 +1,5 @@
 
-class InvalidTagValueException(Exception): pass
+class InvalidTagValue(Exception): pass
 class MissingTag(Exception): pass
 class UserAlreadyInSession(Exception): pass
 class NoUserActiveInSession(Exception): pass

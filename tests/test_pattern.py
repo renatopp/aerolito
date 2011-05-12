@@ -62,13 +62,13 @@ class TestPatternConvertions(unittest.TestCase):
         assert pattern._after is None
 
     def test_convertAfter_BadValue(self):
-        from aerolito.exceptions import InvalidTagValueException
+        from aerolito.exceptions import InvalidTagValue
         p = self.getPattern()
         p['after'] = None
-        self.assertRaises(InvalidTagValueException, self.getTarget, p)
+        self.assertRaises(InvalidTagValue, self.getTarget, p)
 
         p['after'] = ''
-        self.assertRaises(InvalidTagValueException, self.getTarget, p)
+        self.assertRaises(InvalidTagValue, self.getTarget, p)
 
 
     def test_convertIn_WList(self):
@@ -96,13 +96,13 @@ class TestPatternConvertions(unittest.TestCase):
         assert pattern._in is None
 
     def test_convertIn_BadValue(self):
-        from aerolito.exceptions import InvalidTagValueException
+        from aerolito.exceptions import InvalidTagValue
         p = self.getPattern()
         p['in'] = None
-        self.assertRaises(InvalidTagValueException, self.getTarget, p)
+        self.assertRaises(InvalidTagValue, self.getTarget, p)
 
         p['in'] = ''
-        self.assertRaises(InvalidTagValueException, self.getTarget, p)
+        self.assertRaises(InvalidTagValue, self.getTarget, p)
 
     
     def test_convertOut_WList(self):
@@ -128,13 +128,13 @@ class TestPatternConvertions(unittest.TestCase):
         assert pattern._out is None
 
     def test_convertIn_BadValue(self):
-        from aerolito.exceptions import InvalidTagValueException
+        from aerolito.exceptions import InvalidTagValue
         p = self.getPattern()
         p['out'] = None
-        self.assertRaises(InvalidTagValueException, self.getTarget, p)
+        self.assertRaises(InvalidTagValue, self.getTarget, p)
 
         p['out'] = ''
-        self.assertRaises(InvalidTagValueException, self.getTarget, p)
+        self.assertRaises(InvalidTagValue, self.getTarget, p)
 
 
     def test_convertWhen_WList(self):
@@ -165,13 +165,13 @@ class TestPatternConvertions(unittest.TestCase):
         assert pattern._when is None
 
     def test_convertWhen_BadValue(self):
-        from aerolito.exceptions import InvalidTagValueException
+        from aerolito.exceptions import InvalidTagValue
         p = self.getPattern()
         p['when'] = None
-        self.assertRaises(InvalidTagValueException, self.getTarget, p)
+        self.assertRaises(InvalidTagValue, self.getTarget, p)
 
         p['when'] = 'aasdfokasdf'
-        self.assertRaises(InvalidTagValueException, self.getTarget, p)
+        self.assertRaises(InvalidTagValue, self.getTarget, p)
 
 
     def test_convertPost_WList(self):
@@ -203,13 +203,13 @@ class TestPatternConvertions(unittest.TestCase):
         assert pattern._post is None
 
     def test_convertPost_BadValue(self):
-        from aerolito.exceptions import InvalidTagValueException
+        from aerolito.exceptions import InvalidTagValue
         p = self.getPattern()
         p['post'] = None
-        self.assertRaises(InvalidTagValueException, self.getTarget, p)
+        self.assertRaises(InvalidTagValue, self.getTarget, p)
 
         p['post'] = 'aasdfokasdf'
-        self.assertRaises(InvalidTagValueException, self.getTarget, p)
+        self.assertRaises(InvalidTagValue, self.getTarget, p)
 
 
 class TestPattern(unittest.TestCase):
@@ -260,8 +260,8 @@ class TestPattern(unittest.TestCase):
         assert not pattern.match('knock nhok', environ)
 
         assert pattern.match('Knock KNOCK block', environ)
-        assert len(pattern._stars) == 1
-        assert pattern._stars[0] == 'block'
+        assert len(environ['session'][1]['stars']) == 1
+        assert environ['session'][1]['stars'][0] == 'block'
 
     def test_matchAfter(self):
         p = {'after': 'abc * ghi'}
@@ -273,8 +273,8 @@ class TestPattern(unittest.TestCase):
 
         environ['session'][1]['responses'] = ['abc renato ghi']
         assert pattern.match('', environ)
-        assert len(pattern._stars) == 1
-        assert pattern._stars[0] == 'renato'
+        assert len(environ['session'][1]['stars']) == 1
+        assert environ['session'][1]['stars'][0] == 'renato'
 
     def test_matchWhen(self):
         p = {'when': [{'isdefined': '<name>'}]}
