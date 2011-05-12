@@ -183,7 +183,9 @@ class Pattern(object):
 
         if self._after:
             for regex in self._after:
-                if regex.match(environ['lastresponse']):
+                if session['responses'] and \
+                   session['responses'][-1] is not None and \
+                   regex.match(session['responses'][-1]):
                     self._stars = regex._stars
                     session['stars'] = regex._stars
                     break

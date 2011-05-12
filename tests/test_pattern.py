@@ -257,10 +257,10 @@ class TestPattern(unittest.TestCase):
         environ = self.getStubEnviron()
         pattern = self.getTarget(p, environ)
 
-        environ['lastresponse'] = 'renato ghi'
+        environ['session'][1]['responses'] = ['renato ghi']
         assert not pattern.match('', environ)
 
-        environ['lastresponse'] = 'abc renato ghi'
+        environ['session'][1]['responses'] = ['abc renato ghi']
         assert pattern.match('', environ)
         assert len(pattern._stars) == 1
         assert pattern._stars[0] == 'renato'
