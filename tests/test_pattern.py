@@ -22,6 +22,16 @@ class TestPatternConvertions(unittest.TestCase):
             'directives': {
                 'add': lambda x, y, environ: x+y,
                 'isdefined': lambda x, environ:True,
+            },
+            'userid':1,
+            'globals': {},
+            'session': {
+                1: {
+                    'stars': [],
+                    'locals': {
+
+                    },
+                }
             }
         }
 
@@ -134,7 +144,7 @@ class TestPatternConvertions(unittest.TestCase):
 
         assert len(pattern._when) == 1
         assert pattern._when[0]._function == environ['directives']['isdefined']
-        assert pattern._when[0].run(['lalal'], None)
+        assert pattern._when[0].run(environ)
 
     def test_convertWhen_WDict(self):
         p = self.getPattern()
@@ -144,7 +154,7 @@ class TestPatternConvertions(unittest.TestCase):
 
         assert len(pattern._when) == 1
         assert pattern._when[0]._function == environ['directives']['isdefined']
-        assert pattern._when[0].run(['lalal'], None)
+        assert pattern._when[0].run(environ)
 
     def test_convertWhen_WoPattern(self):
         p = self.getPattern()
@@ -167,11 +177,12 @@ class TestPatternConvertions(unittest.TestCase):
     def test_convertPost_WList(self):
         p = self.getPattern()
         environ = self.getStubEnviron()
+        p['post'][0]['add'] = [5, 3]
         pattern = self.getTarget(p, environ)
 
         assert len(pattern._post) == 1
         assert pattern._post[0]._function == environ['directives']['add']
-        assert pattern._post[0].run([5, 3], None) == 8
+        assert pattern._post[0].run(environ) == 8
 
     def test_convertPost_WDict(self):
         p = self.getPattern()
@@ -181,7 +192,7 @@ class TestPatternConvertions(unittest.TestCase):
 
         assert len(pattern._post) == 1
         assert pattern._post[0]._function == environ['directives']['add']
-        assert pattern._post[0].run([2, 3], None) == 5
+        assert pattern._post[0].run(environ) == 5
 
     def test_convertPost_WoPattern(self):
         p = self.getPattern()

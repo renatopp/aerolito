@@ -117,7 +117,7 @@ Aerolito::
           in    : '*'
           out   : <star> who?
         
-        - after : <star> who?
+        - after : '* who?'
           in    : '*'
           out   : Ha ha very funny, <name>.
 

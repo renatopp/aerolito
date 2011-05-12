@@ -3,21 +3,38 @@
 import re
 import random
 from aerolito import exceptions
+from aerolito.utils import removeAccents
 
 def replace(literal, environ):
     """
-    Replace a literal value with variable in environ. 
-    
-    The vars replaced are in format <variablename>. If variablename is not 
-    defined, the value is replaced by an empty string.
+    Substitui o valor de um ``Literal`` por uma variável no dicionario 
+    ``_environ``.
+
+    A função procura as variáveis na sequência:
+
+    1. ``session['stars']``: Nas variáveis temporárias retiradas da associação
+       da entrada, só é acessada através da forma *<star>* ou *<star N>*. Quando
+       for chamado *<star N>* é retornado o valor na posição *N*, começando com
+       0 (zero). O *<star>* é apenas um atalho para *<star 0>*.
+    2. ``_environ['globals']``: Variáveis globais, carregadas do arquivo de 
+       configuração.
+    3. ``session['locals']``: Vaiáveis locais, são definidas e acessadas 
+       geralmente através padrão de conversação (via Directives).
+
+    No caso do dicionário global e local, as variáveis são acessadas através da
+    expressão *<variablename>*. 
+
+    Se uma *<variablename>* não é encontrada na lista de *stars*, variaveis 
+    globais ou locais, a expressão é substituída por uma string vazia  ('').
     """
+
     session = environ['session'][environ['userid']]
     p = '\<([\d|\s|\w]*)\>'
     _vars = re.findall(p, unicode(literal._value), re.I)
 
     result = literal._value
     for var in _vars:
-        # star
+        # Decompõe a expressão em <variavel parametro1 parametroN>
         temp = var.split()
         varname = temp[0]
         params = temp[1:]
@@ -37,7 +54,7 @@ def replace(literal, environ):
 
 class Literal(object):
     """
-    Literal objects represents an entry of ``pattern-out``.
+    Um objeto Literal representa um elemento na tag ``pattern:out``.
     """
 
     def __init__(self, value):
@@ -46,42 +63,53 @@ class Literal(object):
 
 class Action(object):
     """
-    Action objects represents an entry of ``pattern-when`` and ``pattern-post``
+    As Actions são representaçãos dos elementos das tags ``pattern:when`` e
+    ``pattern:post``. Elas são o link entre a Aerolito e funções do python.
 
-    Actions are the link between aerolito and python function.
+    A funções disponíveis são registradas através das Directives.
     """
 
     def __init__(self, function, params):
         """
-        Constructor receive a python function and a params (list of literals)
+        Recebe uma função e uma lista de parâmetros. Os parâmetros são tratados
+        posteriormente no caso de haver algumas expressão para substituição, por
+        exemplo com *<variable>*. Os valores dos parâmetros são definidos nos 
+        arquivos de conversação.
         """
         self._function = function
         self._params = params
 
-    def run(self, params, environ):
+    def run(self, environ):
         """
-        Execute the ``function`` applying ``params``.
-
-        The ``params`` is a list/tuple of values, these values are given in 
-        discussion files (.yml)
+        Executa a ``_function`` passando os parâmetros ``_params`` e a variável
+        ``_environ``. 
         """
+        params = []
+        if self._params:
+            params = [replace(x, environ) for x in self._params]
+            
         return self._function(*params, environ=environ)
 
 
 class Regex(object):
     """
-    Regex objects represents an entry of ``pattern-after`` and ``pattern-in``
+    Os objetos Regex representam os elementos das tags ``pattern:after`` e
+    ``pattern:in``.
 
-    Regex convert an entry value of ``pattern-after`` and ``pattern-in`` to a
-    regular expression. This class is responsible by match user input and 
-    retrieve *star* values.
+    Regex convert o texto passado na inicilização (valores das tags) em uma
+    expressão regular. Essa classe é responsável por aceitar ou não a entrada
+    do usuário com o valor das tags. 
+    
+    Após a assimilação de alguma tag. O Regex guarda os valores adquiridos pela
+    expressão especial "\*".
     """
 
     def __init__(self, text):
         """
-        Receive a text and converts to regular expression.
+        Recebe um texto e converte em expressão regular
         """
-        self._expression = re.escape(text)
+        self._expression = removeAccents(text)
+        self._expression = re.escape(self._expression)
         self._expression = self._expression.replace('\\*', '(.*)')
         self._expression = self._expression.replace('\\\\(.*)', '\*')
         self._expression = re.sub('(\\\ )+\(\.\*\)', '(.*)', self._expression)
@@ -92,8 +120,8 @@ class Regex(object):
     
     def match(self, value):
         """
-        Try to match ``value`` to ``expression`` and retrieve the *star* 
-        variables of value.
+        Tenta reconhecer o ``value`` com a ``_expression``. Se reconhecer guarda
+        os valores do *<star>*.
         """
         m = re.match(self._expression, value, re.I)
         if m:
@@ -106,7 +134,7 @@ class Regex(object):
 
 class Pattern(object):
     """
-    Represents a conversation pattern.
+    Representa um padrão de conversação.
     """
 
     def __init__(self, p, environ):
@@ -203,12 +231,7 @@ class Pattern(object):
 
         if self._when:
             for action in self._when:
-                if action._params:
-                    params = [replace(x, environ) for x in action._params]
-                else:
-                    params = []
-
-                if not action.run(params, environ=environ):
+                if not action.run(environ=environ):
                     return False
         
         return True
@@ -219,9 +242,4 @@ class Pattern(object):
     def executePost(self, environ):
         if self._post:
             for action in self._post:
-                if action._params:
-                    params = [replace(x, environ) for x in action._params]
-                else:
-                    params = []
-
-                action.run(params, environ=environ)
+                action.run(environ=environ)

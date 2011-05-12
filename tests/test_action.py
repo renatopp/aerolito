@@ -6,6 +6,12 @@ class TestAction(unittest.TestCase):
         from aerolito.pattern import Action
         return Action(*args, **kw)
 
+    def getStubLiteral(self, value):
+        class Literal: pass
+        literal = Literal
+        literal._value = value
+        return literal
+
     def getStub(self):
         return lambda x, y, environ: x+y
 
@@ -17,10 +23,28 @@ class TestAction(unittest.TestCase):
         assert len(action._params) == 3
 
     def test_run(self):
-        stub = self.getStub()
-        action = self.getTarget(stub, None)
+        environ = {
+            'directives': {
+                'add': lambda x, y, environ: x+y,
+                'isdefined': lambda x, environ:True,
+            },
+            'userid':1,
+            'globals': {},
+            'session': {
+                1: {
+                    'stars': [],
+                    'locals': {
 
-        assert action.run([2, 3], None) == 5
+                    },
+                }
+            }
+        }
+
+        stub = self.getStub()
+        action = self.getTarget(stub, 
+            [self.getStubLiteral(4), self.getStubLiteral(1)])
+
+        assert action.run(environ) == 5
         
 if __name__ == '__main__':
     unittest.main()
