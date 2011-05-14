@@ -3,6 +3,8 @@
 Arquivo de funções utilitárias
 """
 
+import re
+
 substitute = [
     (u'ç', 'c'),
     (u'ã', 'a'),
@@ -39,5 +41,21 @@ def removeAccents(text):
     for t, f in substitute:
         text = text.replace(t, f)
         text = text.replace(t.upper(), f.upper())
+
+    return text
+
+def substitueSynonym(text, synonyms):
+    text = text.lower()
+    for k, v in synonyms.items():
+        for expression in v:
+            text = re.sub(r'(\W|^)%s(\W|$)'%expression, r'\1%s\2'%k, text)
+
+    return text
+
+def normalizeInput(text, synonyms=None):
+    text = removeAccents(text)
+
+    if synonyms:
+        text = substitueSynonym(text, synonyms)
 
     return text

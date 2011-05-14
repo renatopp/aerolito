@@ -5,8 +5,14 @@ import codecs
 from aerolito import exceptions
 from aerolito.pattern import Pattern
 from aerolito.pattern import removeAccents
+from aerolito.pattern import normalizeInput
+
 
 class Kernel(object):
+    _patterns = None
+    _environ = None
+    _synonyms = None
+
     def __init__(self, configFile, encoding='utf-8'):
         self.loadConfig(configFile, encoding=encoding)
         self.addUser('default')
@@ -82,18 +88,45 @@ class Kernel(object):
                 'session': {},
             }
 
-            if 'files' not in config:
+            if 'conversations' not in config:
                 raise exceptions.MissingTag(
-                            u'Tag "files" not found in configuration file.')
+                        u'Tag "conversations" not found in configuration file.')
 
-            # Initialize pattern list
+            self._synonyms = {}
             self._patterns = []
-            for conversationFile in config['files']:
+            
+            for synonymFile in config.get('synonyms', []):
+                self.loadSynonym(synonymFile, encoding)
+
+            for conversationFile in config['conversations']:
                 self.loadConversation(conversationFile, encoding)
 
         except IOError:
             raise exceptions.FileNotFound(
                         u'Configuration file (%s) not found.'%str(configFile))
+
+    def loadSynonym(self, synonymFile, encoding='utf-8'):
+        try:
+            plaintext = codecs.open(synonymFile, 'rb', encoding).read()
+            data = yaml.load(plaintext)
+            
+            for synonyms in data:
+                if len(synonyms) < 2:
+                    raise exceptions.InvalidTagValue(
+                            u'Synonym list must have more than one element.')
+
+                key = removeAccents(synonyms[0]).lower()
+                vals = [removeAccents(value).lower() for value in synonyms[1:]]
+
+                if key in self._synonyms:
+                    raise exceptions.DuplicatedSynonym(
+                            u'Duplicated synonym "%s" in "%s.'%
+                            (str(key), str(synonymFile)))
+                
+                self._synonyms[key] = vals
+        except IOError:
+            raise exceptions.FileNotFound(
+                    u'Synonym file (%s) not found.'%str(synonymFile))
 
 
     def loadConversation(self, conversationFile, encoding='utf-8'):
@@ -118,7 +151,7 @@ class Kernel(object):
                         str(conversationFile))
 
             for p in data['patterns']:
-                pattern = Pattern(p, self._environ)
+                pattern = Pattern(p, self._environ, self._synonyms)
                 self._patterns.append(pattern)
         except IOError:
             raise exceptions.FileNotFound(
@@ -163,7 +196,7 @@ class Kernel(object):
                 raise exceptions.NoUserActiveInSession(u'No user to session')
 
         output = None
-        value = removeAccents(value)
+        value = normalizeInput(value, self._synonyms)
         for pattern in self._patterns:
             if pattern.match(value, self._environ):
                 output = pattern.choiceOutput(self._environ)

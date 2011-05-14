@@ -4,6 +4,7 @@ import re
 import random
 from aerolito import exceptions
 from aerolito.utils import removeAccents
+from aerolito.utils import normalizeInput
 
 def replace(literal, environ):
     """
@@ -108,8 +109,8 @@ class Regex(object):
         """
         Recebe um texto e converte em expressão regular
         """
-        self._expression = removeAccents(text)
-        self._expression = re.escape(self._expression)
+        # self._expression = removeAccents(text)
+        self._expression = re.escape(text)
         self._expression = self._expression.replace('\\*', '(.*)')
         self._expression = self._expression.replace('\\\\(.*)', '\*')
         self._expression = re.sub('(\\\ )+\(\.\*\)', '(.*)', self._expression)
@@ -149,18 +150,18 @@ class Pattern(object):
        aceito e uma resposta ser selecionada.
     """
 
-    def __init__(self, p, environ):
+    def __init__(self, p, environ, synonyms=None):
         """
         Receve um dicionário ``p`` com as tags (vem do arquivo de conversação) e
         a variável ``_environ``.
         """
         self._after = self.__convertRegex(p, 'after')
-        self._in = self.__convertRegex(p, 'in')
+        self._in = self.__convertRegex(p, 'in', synonyms)
         self._out = self.__convertLiteral(p, 'out')
         self._when = self.__convertAction(p, 'when', environ)
         self._post = self.__convertAction(p, 'post', environ)
 
-    def __convertRegex(self, p, tag):
+    def __convertRegex(self, p, tag, synonyms=None):
         """
         Converte para Regex os valores de uma tag ``tag`` dentro do dicionário
         ``p``. 
@@ -173,10 +174,14 @@ class Pattern(object):
                 raise exceptions.InvalidTagValue(
                                     'Invalid value for tag %s.'%tag)
 
+
             if isinstance(tagValues, (tuple, list)):
-                return [Regex(unicode(x)) for x in tagValues]
+                values = tagValues
             else:
-                return [Regex(unicode(tagValues))]
+                values = [tagValues]
+
+            normalized = [normalizeInput(unicode(x), synonyms) for x in values]
+            return [Regex(x) for x in normalized]
         else:
             return None
 
