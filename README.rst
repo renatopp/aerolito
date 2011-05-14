@@ -1,143 +1,94 @@
-A Linguagem de marcação Aerolito
-================================
+Aerolito
+========
 
-Aerolito é uma linguagem de marcação baseada em YAML com influências da AIML e 
-RiveScript. A ideia é criar uma linguagem mais clara e fácil de se escrever (em
-contraste com a AIML) sem criar uma formato novo (como a RiveScript).
+Aerolito is a markup language YAML based influenced by AIML and RiveScript. The 
+motivation is to have a more clean and easy language than AIML without create a 
+new file format, like RiveScript.
 
-Exemplo de uso::
+Use example::
 
     from aerolito import Kernel
     kernel = Kernel('config.yml')
 
-    print kernel.respond(u'Oi')
+    print kernel.Respond(u'Hello')
 
 
-Definição do esquema
---------------------
+YAML Schema
+-----------
 
-A base de dados é dividida em vários arquivos, chamados de **arquivos de 
-conversação**. Esses arquivos possuem um esquema básico::
+YAML was chosed because is more clean, and easy to maintain and read. It's easy 
+to define python types as lists, strings and dictionaries. For example::
 
-    version    : (Versão)
-    name       : (Nome do tópico coberto pelo arquivo)
-    description: (Descrição do arquivo)
+    # YAML File
+    key:
+        - this is a list item
+        - 999                   # integer
+        - [1, 2, 3, 4]          # list
+        - {1:2, 3:4}            # dict
+        - some string           # string
 
-    patterns:
-        ... (Padrões)
+The example above above generate following structure in Python::
+
+    {key: [
+        'this is a list item',
+        999,
+        [1, 2, 3, 4],
+        {1:2, 3:4}
+        'some string'
+    ]}
+
+Is important to understand the yaml structure to create a correct structure for 
+aerolito. 
 
 
-Cada padrão é um conjunto de *(ENTRADAS-DO-USUÁRIO => RESPOSTA-PARA-USUÁRIO)*. 
-Esses padrões são chamados de **padrões de conversação**.
+Configuration File
+~~~~~~~~~~~~~~~~~~
 
-Os padrões de conversação podem conter as seguintes tags:
+To provide a simple structure for encapsulation, Aerolito knowledge base is 
+divided at least in 2 main files: a configuration and a conversation file.
 
-- **after**: Contém um conjunto de strings que são comparadas com a última 
-  resposta. Para que o padrão seja selecionado é necessário que a última 
-  resposta seja igual a qualquer uma das strings definidas nessa tag.
-- **in**: Contém um conjunto de strings que são comparadas com a entrada do 
-  usuário, para que o padrão seja selecionado é necessário que a entrada seja
-  aceita por qualquer uma das string definidas nessa tag.
-- **when**: Contém um conjunto de ações que serão executadas depois da entrada
-  ser aceita pelas tags ``after`` e ``in``. É necessário que todas ações 
-  retornem um valor verdadeiro para que o padrão seja selecionado.
-- **out**: Conjunto de respostas caso o padrão seja selecionado. Se houver mais
-  de uma resposta, é selecionado uma aleatoriamente.
-- **post**: Ações que serão executadas depois do padrão ser aceito e uma 
-  resposta for selecionada.
+The **configuration file** (e.g. config.yml) will registry every global variable
+and specify the conversation and special files. An example of a config.yml::
 
-Exemplo de um padrão de conversação::
+
+    # config.yml
+    version   : v0.1-alpha
+    botname   : chapolin
+    variable1 : value
+    variable2 : value
+    variableN : value
+
+    conversations:
+        - conversations/file1.yml
+        - conversations/file2.yml
+
+    synonyms:
+        - specials/file1.yml
+        - specials/file2.yml
+    
+
+Notice, the first 5 tags are global variables, accessed in patterns by 
+"<variable>" expression. Also notice the tags "conversations" and "synonyms", 
+these tags define conversations pattern file and special synonym files, 
+respectively. Conversations tag is the only one required in config file, with
+at least one entry.
+
+
+Conversation Files
+~~~~~~~~~~~~~~~~~~
+
+The **conversation files** contains the definition of **conversation patterns**
+(i.e., the set of user-inputs patterns and responses texts). Theses files must 
+have the "patterns" tag, with at least one element. The "patterns" tags defines
+the list of conversation patterns.
+
+Example of file::
 
     patterns:
         - in:
             - Hello
-            - Hi
-          out:
-            - Hello my friend
-            - Hiho
+            - Hi there!
+          out: 
+            - Hi!
 
-
-Exemplos
---------
-
-
-Sinônimos
-~~~~~~~~~
-
-Aerolito::
-
-    patterns:
-        - in:
-            - Hello
-            - Hi
-            - Hi there
-            - Howdy
-            - Hola
-          out:
-            - Hi There!
-
-AIML::
-
-    <category> 
-    <pattern>HELLO</pattern> 
-    <template>Hi there!</template> 
-    </category>
-
-    <category>
-    <pattern>HI</pattern> 
-    <template><srai>HELLO</srai></template>
-    </category>
-
-    <category>
-    <pattern>HI THERE</pattern> 
-    <template><srai>HELLO</srai></template>
-    </category>
-
-    <category>
-    <pattern>HOWDY</pattern> 
-    <template><srai>HELLO</srai></template>
-    </category>
-
-    <category>
-    <pattern>HOLA</pattern> 
-    <template><srai>HELLO</srai></template>
-    </category>
-        
-
-Knock Knock Joke
-~~~~~~~~~~~~~~~~
-
-Aerolito::
-
-    patterns:
-        - in  : Knock Knock
-          out : Who is there?
-
-        - after : Who is there?
-          in    : '*'
-          out   : <star> who?
-        
-        - after : '* who?'
-          in    : '*'
-          out   : Ha ha very funny, <name>.
-
-
-AIML::
-
-    <category>
-    <pattern>KNOCK KNOCK</pattern>
-    <template>Who is there?</template>
-    </category>
-
-    <category>
-    <pattern>*</pattern>
-    <that>WHO IS THERE</that>
-    <template><person/> who?</template>
-    </category>
-
-    <category>
-    <pattern>*</pattern>
-    <that>* WHO</that>
-    <template>Ha ha very funny, <get name="name"/>.</template>
-    </category>
 

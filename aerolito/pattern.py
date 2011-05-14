@@ -272,8 +272,8 @@ class Pattern(object):
 
         if self._after:
             for regex in self._after:
-                if session['responses'] and \
-                   regex.match(session['responses'][-1]):
+                if session['responses-normalized'] and \
+                   regex.match(session['responses-normalized'][-1]):
                     session['stars'] = regex._stars
                     break
             else:

@@ -29,7 +29,6 @@ class TestPatternConvertions(unittest.TestCase):
                 1: {
                     'stars': [],
                     'locals': {
-
                     },
                 }
             }
@@ -243,7 +242,6 @@ class TestPattern(unittest.TestCase):
                 1: {
                     'stars': [],
                     'locals': {
-
                     },
                 }
             }
@@ -268,10 +266,10 @@ class TestPattern(unittest.TestCase):
         environ = self.getStubEnviron()
         pattern = self.getTarget(p, environ)
 
-        environ['session'][1]['responses'] = ['renato ghi']
+        environ['session'][1]['responses-normalized'] = ['renato ghi']
         assert not pattern.match('', environ)
 
-        environ['session'][1]['responses'] = ['abc renato ghi']
+        environ['session'][1]['responses-normalized'] = ['abc renato ghi']
         assert pattern.match('', environ)
         assert len(environ['session'][1]['stars']) == 1
         assert environ['session'][1]['stars'][0] == 'renato'

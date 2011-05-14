@@ -44,6 +44,7 @@ class Kernel(object):
         session = self._environ['session'][userid]
         session['inputs'] = []
         session['responses'] = []
+        session['responses-normalized'] = []
         session['stars'] = []
         session['locals'] = {}
     
@@ -218,6 +219,7 @@ class Kernel(object):
 
             if registry:
                 session['responses'].append(output)
+                session['responses-normalized'].append(normalizeInput(output))
 
         return output
 
