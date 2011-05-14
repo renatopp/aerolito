@@ -1,5 +1,6 @@
 # -*- coding:utf-8 -*-
 
+import re
 import yaml
 import codecs
 from aerolito import exceptions
@@ -158,7 +159,7 @@ class Kernel(object):
                     u'Conversation file (%s) not found.'%str(conversationFile))
 
 
-    def respond(self, value, userid=None):
+    def respond(self, value, userid=None, registry=True):
         """
         Método para retornar uma resposta à uma entrada do usuário
 
@@ -204,10 +205,19 @@ class Kernel(object):
                 break
             
         session = self._environ['session'][self._environ['userid']]
-        session['inputs'].append(value)
+        if registry:
+            session['inputs'].append(value)
         
         if output:
-            session['responses'].append(output)
+            recursive = re.findall('\(rec\|([^\)]*)\)', output)
+            for r in recursive:
+                toreplace = u'(rec|%s)'%r
+                resp = self.respond(r, registry=False) or ''
+                # print 'to replace:', toreplace, '=>', resp
+                output = output.replace(toreplace, resp)
+
+            if registry:
+                session['responses'].append(output)
 
         return output
 
