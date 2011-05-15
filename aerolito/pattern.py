@@ -158,7 +158,7 @@ class Pattern(object):
         """
         self._after = self.__convertRegex(p, 'after', environ)
         self._in = self.__convertRegex(p, 'in', environ)
-        self._out = self.__convertLiteral(p, 'out')
+        self._out = self.__convertLiteral(p, 'out', environ)
         self._when = self.__convertAction(p, 'when', environ)
         self._post = self.__convertAction(p, 'post', environ)
 
@@ -191,13 +191,14 @@ class Pattern(object):
         else:
             return None
 
-    def __convertLiteral(self, p, tag):
+    def __convertLiteral(self, p, tag, environ=None):
         """
         Converte para Literal os valores de uma tag ``tag`` dentro do dicionário
         ``p``. 
 
         Aceita uma lista de strings ou uma string.
         """
+        meanings = environ['meanings']
         if p.has_key(tag):
             tagValues = p[tag]
             if tagValues is None or tagValues == u'':
@@ -205,9 +206,15 @@ class Pattern(object):
                                     'Invalid value for tag %s.'%tag)
 
             if isinstance(tagValues, (tuple, list)):
-                return [Literal(unicode(x)) for x in tagValues]
+                values = tagValues
             else:
-                return [Literal(unicode(tagValues))]
+                values = [tagValues]
+
+            patterns = []
+            for x in values:
+                patterns.extend(getMeanings(x, meanings))
+
+            return [Literal(unicode(x)) for x in patterns]
         else:
             return None
 
