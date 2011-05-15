@@ -7,3 +7,4 @@ class FileNotFound(Exception): pass
 class InitializationRequired(Exception): pass
 
 class DuplicatedSynonym(Exception): pass
+class DuplicatedMeaning(Exception): pass

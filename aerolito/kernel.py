@@ -13,6 +13,7 @@ class Kernel(object):
     _patterns = None
     _environ = None
     _synonyms = None
+    _meanings = None
 
     def __init__(self, configFile, encoding='utf-8'):
         self.loadConfig(configFile, encoding=encoding)
@@ -85,6 +86,8 @@ class Kernel(object):
             # Initialize environment dict
             self._environ = {
                 'userid': None,
+                'meanings': None,
+                'synonyms': None,
                 'directives': {},
                 'globals': config,
                 'session': {},
@@ -95,10 +98,17 @@ class Kernel(object):
                         u'Tag "conversations" not found in configuration file.')
 
             self._synonyms = {}
+            self._meanings = {}
             self._patterns = []
             
+            self._environ['synonyms'] = self._synonyms
+            self._environ['meanings'] = self._meanings
+
             for synonymFile in config.get('synonyms', []):
                 self.loadSynonym(synonymFile, encoding)
+
+            for meaningFile in config.get('meanings', []):
+                self.loadMeaning(meaningFile, encoding)
 
             for conversationFile in config['conversations']:
                 self.loadConversation(conversationFile, encoding)
@@ -130,6 +140,28 @@ class Kernel(object):
             raise exceptions.FileNotFound(
                     u'Synonym file (%s) not found.'%str(synonymFile))
 
+    def loadMeaning(self, meaningFile, encoding='utf-8'):
+        try:
+            plaintext = codecs.open(meaningFile, 'rb', encoding).read()
+            data = yaml.load(plaintext)
+            
+            for meanings, values in data.items():
+                if len(values) == 0:
+                    raise exceptions.InvalidTagValue(
+                            u'Meaning list must have one or more element.')
+
+                key = removeAccents(meanings).lower()
+                vals = [removeAccents(value).lower() for value in values]
+
+                if key in self._meanings:
+                    raise exceptions.DuplicatedMeaning(
+                            u'Duplicated meaning "%s" in "%s.'%
+                            (str(key), str(meaningFile)))
+                
+                self._meanings[key] = vals
+        except IOError:
+            raise exceptions.FileNotFound(
+                    u'Meaning file (%s) not found.'%str(meaningFile))
 
     def loadConversation(self, conversationFile, encoding='utf-8'):
         """
@@ -153,7 +185,7 @@ class Kernel(object):
                         str(conversationFile))
 
             for p in data['patterns']:
-                pattern = Pattern(p, self._environ, self._synonyms)
+                pattern = Pattern(p, self._environ)
                 self._patterns.append(pattern)
         except IOError:
             raise exceptions.FileNotFound(

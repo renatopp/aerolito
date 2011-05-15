@@ -4,6 +4,7 @@ Arquivo de funções utilitárias
 """
 
 import re
+import itertools
 
 substitute = [
     (u'ç', 'c'),
@@ -43,6 +44,18 @@ def removeAccents(text):
         text = text.replace(t.upper(), f.upper())
 
     return text
+
+def getMeanings(text, meanings):
+    keys = re.findall('\(mean\|([^\)]*)\)', text)
+    for key in keys:
+        text = text.replace('(mean|%s)'%key, '%s')
+
+    l = []
+    for values in itertools.product(*[meanings[key] for key in keys]):
+        a = text%values
+        l.append(a)
+
+    return l
 
 def substitueSynonym(text, synonyms):
     text = text.lower()

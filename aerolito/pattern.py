@@ -5,6 +5,7 @@ import random
 from aerolito import exceptions
 from aerolito.utils import removeAccents
 from aerolito.utils import normalizeInput
+from aerolito.utils import getMeanings
 
 def replace(literal, environ):
     """
@@ -150,30 +151,31 @@ class Pattern(object):
        aceito e uma resposta ser selecionada.
     """
 
-    def __init__(self, p, environ, synonyms=None):
+    def __init__(self, p, environ):
         """
         Receve um dicionário ``p`` com as tags (vem do arquivo de conversação) e
         a variável ``_environ``.
         """
-        self._after = self.__convertRegex(p, 'after')
-        self._in = self.__convertRegex(p, 'in', synonyms)
+        self._after = self.__convertRegex(p, 'after', environ)
+        self._in = self.__convertRegex(p, 'in', environ)
         self._out = self.__convertLiteral(p, 'out')
         self._when = self.__convertAction(p, 'when', environ)
         self._post = self.__convertAction(p, 'post', environ)
 
-    def __convertRegex(self, p, tag, synonyms=None):
+    def __convertRegex(self, p, tag, environ=None):
         """
         Converte para Regex os valores de uma tag ``tag`` dentro do dicionário
         ``p``. 
 
         Aceita uma lista de strings ou uma string.
         """
+        synonyms = environ['synonyms']
+        meanings = environ['meanings']
         if p.has_key(tag):
             tagValues = p[tag]
             if tagValues is None or tagValues == u'':
                 raise exceptions.InvalidTagValue(
                                     'Invalid value for tag %s.'%tag)
-
 
             if isinstance(tagValues, (tuple, list)):
                 values = tagValues
@@ -181,7 +183,11 @@ class Pattern(object):
                 values = [tagValues]
 
             normalized = [normalizeInput(unicode(x), synonyms) for x in values]
-            return [Regex(x) for x in normalized]
+            patterns = []
+            for x in normalized:
+                patterns.extend(getMeanings(x, meanings))
+
+            return [Regex(x) for x in patterns]
         else:
             return None
 
