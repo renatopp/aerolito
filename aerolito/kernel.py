@@ -151,7 +151,7 @@ class Kernel(object):
                             u'Meaning list must have one or more element.')
 
                 key = removeAccents(meanings).lower()
-                vals = [removeAccents(value).lower() for value in values]
+                vals = [normalizeInput(v, self._environ['synonyms']).lower() for v in values]
 
                 if key in self._meanings:
                     raise exceptions.DuplicatedMeaning(
@@ -251,7 +251,7 @@ class Kernel(object):
 
             if registry:
                 session['responses'].append(output)
-                session['responses-normalized'].append(normalizeInput(output))
+                session['responses-normalized'].append(normalizeInput(output, self._synonyms))
 
         return output
 

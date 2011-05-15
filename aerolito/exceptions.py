@@ -8,3 +8,4 @@ class InitializationRequired(Exception): pass
 
 class DuplicatedSynonym(Exception): pass
 class DuplicatedMeaning(Exception): pass
+class InvalidMeaningKey(Exception): pass

@@ -5,6 +5,7 @@ Arquivo de funções utilitárias
 
 import re
 import itertools
+from aerolito import exceptions
 
 substitute = [
     (u'ç', 'c'),
@@ -45,13 +46,22 @@ def removeAccents(text):
 
     return text
 
-def getMeanings(text, meanings):
+def getMeanings(text, meanings, localMeanings=None):
     keys = re.findall('\(mean\|([^\)]*)\)', text)
     for key in keys:
         text = text.replace('(mean|%s)'%key, '%s')
 
     l = []
-    for values in itertools.product(*[meanings[key] for key in keys]):
+    m = []
+    for key in keys:
+        if localMeanings and key in localMeanings:
+            m.append(localMeanings[key])
+        elif key in meanings:
+            m.append(meanings[key])
+        else:
+            raise exceptions.InvalidMeaningKey(u'Invalid meaning key "%s"'%key)
+    # m = [meanings.get(key, )  for key in keys]
+    for values in itertools.product(*m):
         a = text%values
         l.append(a)
 

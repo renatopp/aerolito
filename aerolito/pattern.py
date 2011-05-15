@@ -62,6 +62,8 @@ class Literal(object):
     def __init__(self, value):
         self._value = value
 
+    def __repr__(self):
+        return '<Literal %s>' % self._value
 
 class Action(object):
     """
@@ -133,9 +135,11 @@ class Regex(object):
             self._stars = None
             return False
 
+    def __repr__(self):
+        return '<Regex %s>' % self._expression
 
 class Pattern(object):
-    """
+    u"""
     Representa um padrão de conversação.
 
     Um padrão é dividido em 5 tags, usadas na seguinte ordem:
@@ -152,18 +156,35 @@ class Pattern(object):
     """
 
     def __init__(self, p, environ):
-        """
+        u"""
         Receve um dicionário ``p`` com as tags (vem do arquivo de conversação) e
         a variável ``_environ``.
         """
+        self._mean = self.__convertMean(p, environ)
         self._after = self.__convertRegex(p, 'after', environ)
         self._in = self.__convertRegex(p, 'in', environ)
         self._out = self.__convertLiteral(p, 'out', environ)
         self._when = self.__convertAction(p, 'when', environ)
         self._post = self.__convertAction(p, 'post', environ)
 
+    def __convertMean(self, p, environ=None):
+        meanings = {}
+        synonyms = environ['synonyms']
+        if p.has_key('mean'):
+            tagValues = p['mean']
+            if tagValues is None:
+                raise exceptions.InvalidTagValue(u'Invalid value for tag mean')
+
+            for k in tagValues:
+                key = removeAccents(k)
+                meanings[key] = [normalizeInput(v, synonyms) for v in tagValues[k]]
+                
+            return meanings
+        else:
+            return None
+
     def __convertRegex(self, p, tag, environ=None):
-        """
+        u"""
         Converte para Regex os valores de uma tag ``tag`` dentro do dicionário
         ``p``. 
 
@@ -175,7 +196,7 @@ class Pattern(object):
             tagValues = p[tag]
             if tagValues is None or tagValues == u'':
                 raise exceptions.InvalidTagValue(
-                                    'Invalid value for tag %s.'%tag)
+                                    u'Invalid value for tag %s.'%tag)
 
             if isinstance(tagValues, (tuple, list)):
                 values = tagValues
@@ -185,14 +206,14 @@ class Pattern(object):
             normalized = [normalizeInput(unicode(x), synonyms) for x in values]
             patterns = []
             for x in normalized:
-                patterns.extend(getMeanings(x, meanings))
+                patterns.extend(getMeanings(x, meanings, self._mean))
 
             return [Regex(x) for x in patterns]
         else:
             return None
 
     def __convertLiteral(self, p, tag, environ=None):
-        """
+        u"""
         Converte para Literal os valores de uma tag ``tag`` dentro do dicionário
         ``p``. 
 
@@ -212,14 +233,14 @@ class Pattern(object):
 
             patterns = []
             for x in values:
-                patterns.extend(getMeanings(x, meanings))
+                patterns.extend(getMeanings(x, meanings, self._mean))
 
             return [Literal(unicode(x)) for x in patterns]
         else:
             return None
 
     def __convertAction(self, p, tag, environ):
-        """
+        u"""
         Converte para Action os valores de uma tag ``tag`` dentro do dicionário
         ``p``. A action só é criada quando existir uma directive correspondente,
         se a directive não existir uma exceção ``InvalidTagValue`` é
@@ -270,7 +291,7 @@ class Pattern(object):
 
 
     def match(self, value, environ):
-        """
+        u"""
         Verifica se o ``value`` é associado com o padrão. A sequência de 
         verificação é a seguinte:
 
@@ -308,13 +329,13 @@ class Pattern(object):
         return True
 
     def choiceOutput(self, environ):
-        """
+        u"""
         Escolhe uma resposta aleatória, substituindo as variaveis necessárias.
         """
         return replace(random.choice(self._out), environ)
     
     def executePost(self, environ):
-        """
+        u"""
         Executa as ações da tag post.
         """
         if self._post:
