@@ -73,14 +73,14 @@ class Action(object):
     A funções disponíveis são registradas através das Directives.
     """
 
-    def __init__(self, function, params):
+    def __init__(self, directive, params):
         """
         Recebe uma função e uma lista de parâmetros. Os parâmetros são tratados
         posteriormente no caso de haver algumas expressão para substituição, por
         exemplo com *<variable>*. Os valores dos parâmetros são definidos nos 
         arquivos de conversação.
         """
-        self._function = function
+        self._directive = directive
         self._params = params
 
     def run(self, environ):
@@ -92,7 +92,7 @@ class Action(object):
         if self._params:
             params = [replace(x, environ) for x in self._params]
             
-        return self._function(*params, environ=environ)
+        return self._directive(params)
 
 
 class Regex(object):
@@ -254,6 +254,9 @@ class Pattern(object):
             tagValues = p[tag]
             actions = []
 
+            if isinstance(tagValues, dict):
+                tagValues = [tagValues]
+
             if isinstance(tagValues, (tuple, list)):
                 for d in tagValues:
                     for k, p in d.iteritems():
@@ -268,19 +271,6 @@ class Pattern(object):
 
                         action = Action(environ['directives'][k], params)
                         actions.append(action)
-            elif isinstance(tagValues, dict):
-                for k, p in tagValues.iteritems():
-                    if isinstance(p, (tuple, list)):
-                        params = [Literal(x) for x in p]
-                    else:
-                        params = [Literal(p)]
-
-                    if k not in environ['directives']:
-                            raise exceptions.InvalidTagValue(
-                                    u'Directive "%s" not found'%str(k))
-                    
-                    action = Action(environ['directives'][k], params)
-                    actions.append(action)
             else:
                 raise exceptions.InvalidTagValue(
                                     u'Invalid value for tag %s.'%tag)
@@ -323,7 +313,7 @@ class Pattern(object):
 
         if self._when:
             for action in self._when:
-                if not action.run(environ=environ):
+                if not action.run(environ):
                     return False
         
         return True
@@ -340,4 +330,4 @@ class Pattern(object):
         """
         if self._post:
             for action in self._post:
-                action.run(environ=environ)
+                action.run(environ)

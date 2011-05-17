@@ -4,6 +4,7 @@ import re
 import yaml
 import codecs
 from aerolito import exceptions
+from aerolito import directives
 from aerolito.pattern import Pattern
 from aerolito.pattern import removeAccents
 from aerolito.pattern import normalizeInput
@@ -21,7 +22,7 @@ class Kernel(object):
         self.setUser('default')
 
     def addUser(self, userid):
-        """
+        u"""
         Adiciona um novo usuário na sessão, reservando as variáveis:
 
         - **inputs**: Lista com todas entradas de um usuário
@@ -50,21 +51,34 @@ class Kernel(object):
         session['locals'] = {}
     
     def setUser(self, userid):
-        """
+        u"""
         Define qual é o usuário ativo na sessão. As funções e objetos usam a 
         variável ``_environ['userid']`` para pegar a sessão correta.
         """
         self._environ['userid'] = userid
 
     def removeUser(self, userid):
-        """
+        u"""
         Remove um usuário da sessão. Se não o usuário não exister nada acontece.
         """
         if userid in self._environ['session']:
             del self._environ['session'][userid]
 
+    def __loadDirectives(self):
+        envdirectives = self._environ['directives']
+        envdirectives['define'] = directives.Define(self._environ)
+        envdirectives['delete'] = directives.Delete(self._environ)
+        envdirectives['isdefined'] = directives.IsDefined(self._environ)
+        envdirectives['isnotdefined'] = directives.IsNotDefined(self._environ)
+        envdirectives['equal'] = directives.Equal(self._environ)
+        envdirectives['notequal'] = directives.NotEqual(self._environ)
+        envdirectives['greaterthan'] = directives.GreaterThan(self._environ)
+        envdirectives['lessthan'] = directives.LessThan(self._environ)
+        envdirectives['greaterequal'] = directives.GreaterEqual(self._environ)
+        envdirectives['lessequal'] = directives.LessEqual(self._environ)
+
     def loadConfig(self, configFile, encoding='utf-8'):
-        """
+        u"""
         Carrega o arquivo de configuração.
         
         Recebe como parâmetro o nome (ou nome e caminho) do arquivo de 
@@ -92,6 +106,8 @@ class Kernel(object):
                 'globals': config,
                 'session': {},
             }
+
+            self.__loadDirectives()
 
             if 'conversations' not in config:
                 raise exceptions.MissingTag(
@@ -164,7 +180,7 @@ class Kernel(object):
                     u'Meaning file (%s) not found.'%str(meaningFile))
 
     def loadConversation(self, conversationFile, encoding='utf-8'):
-        """
+        u"""
         Carrega um arquivo de conversação.
 
         Recebe como parâmetro o nome (ou nome e caminho) de um arquivo de 
@@ -193,7 +209,7 @@ class Kernel(object):
 
 
     def respond(self, value, userid=None, registry=True):
-        """
+        u"""
         Método para retornar uma resposta à uma entrada do usuário
 
         O parâmetro ``value`` é a entrada do usuário que deve ser respondida. 
@@ -254,4 +270,3 @@ class Kernel(object):
                 session['responses-normalized'].append(normalizeInput(output, self._synonyms))
 
         return output
-
