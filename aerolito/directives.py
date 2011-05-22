@@ -1,5 +1,11 @@
 # -*- coding:utf-8 -*-
 
+_directivePool = {}
+
+def registerDirective(alias, directive):
+    _directivePool[alias] = directive
+
+
 class Directive(object):
     def __init__(self, environ):
         self.environ = environ

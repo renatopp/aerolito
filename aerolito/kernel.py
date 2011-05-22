@@ -9,7 +9,6 @@ from aerolito.pattern import Pattern
 from aerolito.pattern import removeAccents
 from aerolito.pattern import normalizeInput
 
-
 class Kernel(object):
     _patterns = None
     _environ = None
@@ -64,6 +63,15 @@ class Kernel(object):
         if userid in self._environ['session']:
             del self._environ['session'][userid]
 
+    def addDirective(self, name, directive):
+        u"""
+        Registra uma nova diretiva.
+        """
+        if self._environ['directives'].has_key(name):
+            raise DuplicatedDirective(u'Duplicated directive name "%s"'%name)
+        
+        self._environ['directives'][name] = directive(self._environ)
+
     def __loadDirectives(self):
         envdirectives = self._environ['directives']
         envdirectives['define'] = directives.Define(self._environ)
@@ -76,6 +84,9 @@ class Kernel(object):
         envdirectives['lessthan'] = directives.LessThan(self._environ)
         envdirectives['greaterequal'] = directives.GreaterEqual(self._environ)
         envdirectives['lessequal'] = directives.LessEqual(self._environ)
+
+        for k, item in directives._directivePool.iteritems():
+            self.addDirective(k, item)
 
     def loadConfig(self, configFile, encoding='utf-8'):
         u"""
