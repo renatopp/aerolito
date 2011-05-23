@@ -1,6 +1,6 @@
 # -*- coding: utf-8 -*-
 """
-Arquivo de funções utilitárias
+Utilities functions
 """
 
 import re
@@ -34,8 +34,8 @@ substitute = [
 ]
 
 def removeAccents(text):
-    """
-    Remove acentos de um texto trocando pela letra correspondente, por exemplo:
+    u"""
+    Removes accents of a ``text`` changing by correspondent letters, e.g.:
 
     >>> removeAccents(u'ã')
     'a'
@@ -47,6 +47,12 @@ def removeAccents(text):
     return text
 
 def getMeanings(text, meanings, localMeanings=None):
+    u"""
+    Replaces meaning tags by their values, using a meaning list.
+
+    If a mean tag of ``text`` is searched in ``localMeaning`` first, if mean is
+    not found, method try by global ``meanings``.
+    """
     keys = re.findall('\(mean\|([^\)]*)\)', text)
     for key in keys:
         text = text.replace('(mean|%s)'%key, '%s')
@@ -68,6 +74,9 @@ def getMeanings(text, meanings, localMeanings=None):
     return l
 
 def substitueSynonym(text, synonyms):
+    u"""
+    Replaces synonyms tags by their values, using a sysnonym list.
+    """
     text = text.lower()
     for k, v in synonyms.items():
         for expression in v:
@@ -76,6 +85,9 @@ def substitueSynonym(text, synonyms):
     return text
 
 def normalizeInput(text, synonyms=None):
+    u"""
+    Automatizes the task of remove accents and substitute synonyms.
+    """
     text = removeAccents(text)
 
     if synonyms:

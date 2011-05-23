@@ -1,3 +1,5 @@
+# -*- coding: utf-8 -*-
+
 class InvalidTagValue(Exception): pass
 class MissingTag(Exception): pass
 class UserAlreadyInSession(Exception): pass

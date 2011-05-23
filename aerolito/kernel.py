@@ -1,4 +1,4 @@
-# -*- coding:utf-8 -*-
+# -*- coding: utf-8 -*-
 
 import re
 import yaml
@@ -10,32 +10,46 @@ from aerolito.pattern import removeAccents
 from aerolito.pattern import normalizeInput
 
 class Kernel(object):
+    u"""
+    Aerolito's main object. 
+
+    Kernel use an environment variable for session and variables controlling. 
+    Session are used for user-dependent information storage, such inputs and 
+    outputs logs, and local variables. Variables are devided into 3 levels: 
+    *stars* for pattern-related, *locals* for user-related, and *globals*.
+    """
+    # List of patterns, synonyms and meanings file, loaded from configuration 
+    # file
     _patterns = None
-    _environ = None
     _synonyms = None
     _meanings = None
 
+    # Environ variable
+    _environ = None
+
     def __init__(self, configFile, encoding='utf-8'):
         self.loadConfig(configFile, encoding=encoding)
+
+        # Create a default user
         self.addUser('default')
         self.setUser('default')
 
     def addUser(self, userid):
         u"""
-        Adiciona um novo usuário na sessão, reservando as variáveis:
+        Add a new use in session in environ variable, initializing the following
+        user-dependet variables:
 
-        - **inputs**: Lista com todas entradas de um usuário
-        - **responses**: Lista com todas respostas retornadas para um usuário, 
-          se não houver saída, ou seja, se o retorno for None, o retorno não é 
-          registrado
-        - **stars**: Variáveis retiradas no reconhecimento de uma entrada, pelas
-          tags ``after`` e ``in``. Essa lista de variáveis contém as substrings
-          reconhecidas no lugar do asterisco (\*).
-        - **locals**: Dicionário de variáveis locais, setadas via padrões de 
-          discussão.
+        - **inputs**: List with all inputs of an user.
+        - **responses**: List with all outputs for an user, without normalizing.
+        - **responses-normalized**: List with all outputs normalizeds.
+        - **stars**: Pattern-related variables, is a list of stars that matches 
+          with recognized pattern (i.e., words in the place of "\*"). Is filled 
+          by ``after`` and ``in`` tags.
+        - **locals**: Dictionary of local variables, setted via patterns in 
+          ``when`` or ``post`` tags.
 
-        Se o ``userid`` já estiver na sessão uma exceção 
-        ``UserAlreadyInSessionException`` é lançada.
+        If is ``userid`` already in session, an exception
+        ``UserAlreadyInSession`` is rised.
         """
         if userid in self._environ:
             raise exceptions.UserAlreadyInSession(
@@ -51,21 +65,21 @@ class Kernel(object):
     
     def setUser(self, userid):
         u"""
-        Define qual é o usuário ativo na sessão. As funções e objetos usam a 
-        variável ``_environ['userid']`` para pegar a sessão correta.
+        Defines who is the active user in session. Functions and objects use
+        ``_environ['userid']`` variable to catch the correct session.
         """
         self._environ['userid'] = userid
 
     def removeUser(self, userid):
         u"""
-        Remove um usuário da sessão. Se não o usuário não exister nada acontece.
+        Remove an user of session.
         """
         if userid in self._environ['session']:
             del self._environ['session'][userid]
 
     def addDirective(self, name, directive):
         u"""
-        Registra uma nova diretiva.
+        Add a new directive in environment var.
         """
         if self._environ['directives'].has_key(name):
             raise DuplicatedDirective(u'Duplicated directive name "%s"'%name)
@@ -73,6 +87,10 @@ class Kernel(object):
         self._environ['directives'][name] = directive(self._environ)
 
     def __loadDirectives(self):
+        u"""
+        Load default directives and directives of ``directives._directivePool``,
+        setted via ``directives.registerDirective`` by user.
+        """
         envdirectives = self._environ['directives']
         envdirectives['define'] = directives.Define(self._environ)
         envdirectives['delete'] = directives.Delete(self._environ)
@@ -90,19 +108,18 @@ class Kernel(object):
 
     def loadConfig(self, configFile, encoding='utf-8'):
         u"""
-        Carrega o arquivo de configuração.
-        
-        Recebe como parâmetro o nome (ou nome e caminho) do arquivo de 
-        configuração e o encoding do arquivo. O encoding padrão é utf-8.
+        Load the configuration file.
 
-        O Arquivo de configuração possui tags obrigatórias:
+        Receive as parameters a name (with relative or full path) of 
+        configuration file, and their encoding. Default encoding is utf-8.
 
-        - **files**: Tag que especifica os arquivos de conversação (Um lista de
-          string contendo o nome (com ou sem caminho) dos arquivo).
+        The configuration file have a obrigatory tag **conversations**, that 
+        specify the conversation files. Is a list with the name (with relative 
+        or full path) of the files.
 
-        Cada Kernel pode carregar apenas um arquivo de configuração, então se 
-        esse método for chamado mais de uma vez, a última vai sobrescrever a 
-        váriavel ``_environ``, iniciando a sessão.
+        Each kernel can load only one of configuration files, if this method is
+        called two times, the second call will override the previous 
+        informations (by environ variable).
         """
         try:
             plaintext = codecs.open(configFile, 'rb', encoding).read()
@@ -145,6 +162,16 @@ class Kernel(object):
                         u'Configuration file (%s) not found.'%str(configFile))
 
     def loadSynonym(self, synonymFile, encoding='utf-8'):
+        u"""
+        Load a synonym file.
+
+        Receive as parameters a name (with relative or full path) of a
+        synonym file, and their encoding. Default encoding is utf-8.
+
+        Synonym file must have at least one element. Contains a list of lists.
+        
+        The patterns are loaded in ``_synonyms``
+        """
         try:
             plaintext = codecs.open(synonymFile, 'rb', encoding).read()
             data = yaml.load(plaintext)
@@ -168,6 +195,16 @@ class Kernel(object):
                     u'Synonym file (%s) not found.'%str(synonymFile))
 
     def loadMeaning(self, meaningFile, encoding='utf-8'):
+        u"""
+        Load a meaning file.
+
+        Receive as parameters a name (with relative or full path) of a
+        meaning file, and their encoding. Default encoding is utf-8.
+
+        Meaning file must have at least one element. Contains a list of lists.
+
+        The patterns are loaded in ``_meanings``
+        """
         try:
             plaintext = codecs.open(meaningFile, 'rb', encoding).read()
             data = yaml.load(plaintext)
@@ -192,16 +229,15 @@ class Kernel(object):
 
     def loadConversation(self, conversationFile, encoding='utf-8'):
         u"""
-        Carrega um arquivo de conversação.
+        Load a conversation file.
 
-        Recebe como parâmetro o nome (ou nome e caminho) de um arquivo de 
-        conversação e o encoding do arquivo. O encoding padrão é utf-8.
+        Receive as parameters a name (with relative or full path) of a
+        conversation file, and their encoding. Default encoding is utf-8.
 
-        O Arquivo de configuração possui tags obrigatórias:
+        The conversations file have a obrigatory tag **patterns**, that specify 
+        the conversation patterns. Is a list of dictonaries.
 
-        - **pattens**: Tag que especifica a lista de padrões de convesação. 
-
-        Os padrões carregados são adicionados à lista ``_patterns``
+        The patterns are loaded in ``_patterns``
         """
         try:
             plaintext = codecs.open(conversationFile, 'rb', encoding).read()
@@ -221,25 +257,20 @@ class Kernel(object):
 
     def respond(self, value, userid=None, registry=True):
         u"""
-        Método para retornar uma resposta à uma entrada do usuário
+        Returns a response for a given user input.
 
-        O parâmetro ``value`` é a entrada do usuário que deve ser respondida. 
+        Parameters ``value`` is the user input.
+
+        If ``userid`` is informed, the kernel changes the session for this user,
+        if parameter is null, kernel keeps the active user. If user is not 
+        informed and no user is active, kernel try to use the *'default'* user,
+        if default is not avaliable (out of session pool) an exception is 
+        raised.
         
-        Se o ``userid`` for informado, o kernel troca seta a sessão para ele, se
-        o parâmetro for nulo, é mantido o usuário atual. No caso do parâmetro 
-        não ser informado e nenhum usuário esta ativo, o kernel tenta usar o 
-        usuário *'default'*, se ele não estiver na sessão uma exceção
-        ``NoUserActiveInSession`` é lançada.
-
-        Esse método só pode ser chamado depois da inicialização (arquivos de 
-        configuração e conversação carregados) por causa da inicialização das
-        variáveis de ambiente e processamento dos padrões. 
-
-        Caso a variáveis ``_environ`` ou ``_patterns`` estiverem vazias, uma
-        exceção ``InitializationRequired`` é lançada.
+        This method just can be used after environment initialization.
         """
 
-        # Verifica inicialização
+        # Verify initialization
         if not self._environ :
             raise exceptions.InitializationRequired(
                     u'Initialization required: Load a configuration file')
@@ -247,7 +278,7 @@ class Kernel(object):
             raise exceptions.InitializationRequired(
                     u'Initialization required: Load a conversation file')
 
-        # Verifica o usuário da sessão
+        # Verify user's session
         if userid is not None:
             self.setUser(userid)
         elif self._environ['userid'] is None:
@@ -273,7 +304,6 @@ class Kernel(object):
             for r in recursive:
                 toreplace = u'(rec|%s)'%r
                 resp = self.respond(r, registry=False) or ''
-                # print 'to replace:', toreplace, '=>', resp
                 output = output.replace(toreplace, resp)
 
             if registry:
