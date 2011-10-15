@@ -282,6 +282,13 @@ class TestPattern(unittest.TestCase):
         print pattern._when
         assert pattern.match('hello', environ)
     
+    def test_match_with_ignore(self):
+        p = {'ignore':',!', 'in':'hello,,,,,!!! there'}
+        environ = self.get_stub_environ()
+        pattern = self.get_target(p, environ)
+
+        assert pattern.match('hello, there', environ)
+    
     def test_choice_output(self):
         environ = self.get_stub_environ()
         
@@ -302,7 +309,6 @@ class TestPattern(unittest.TestCase):
 
         assert environ['abc'] == 'hehe'
 
-        
 
 if __name__ == '__main__':
     unittest.main()

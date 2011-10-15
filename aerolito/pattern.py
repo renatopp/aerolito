@@ -128,12 +128,20 @@ class Regex(object):
     expressão especial "\*".
     """
 
-    def __init__(self, text):
+    def __init__(self, text, ignore=None):
         """
         Recebe um texto e converte em expressão regular
         """
         # self._expression = remove_accents(text)
-        self._expression = re.escape(text)
+        if ignore:
+            ignore = '|'.join([re.escape(i) for i in ignore])
+            self._ignore = re.compile('[%s]'%ignore)
+            self._expression = re.sub(self._ignore, '', text)
+        else:
+            self._ignore = None
+            self._expression = text
+
+        self._expression = re.escape(self._expression)
         self._expression = self._expression.replace('\\*', '(.*)')
         self._expression = self._expression.replace('\\\\(.*)', '\*')
         self._expression = re.sub('(\\\ )+\(\.\*\)', '(.*)', self._expression)
@@ -147,6 +155,9 @@ class Regex(object):
         Tenta reconhecer o ``value`` com a ``_expression``. Se reconhecer guarda
         os valores do *<star>*.
         """
+        if self._ignore:
+            value = re.sub(self._ignore, '', value)
+
         m = re.match(self._expression, value, re.I)
         if m:
             self._stars = [x.strip() for x in m.groups()]
@@ -182,6 +193,7 @@ class Pattern(object):
         a variável ``_environ``.
         """
         self._mean = self.__convert_mean(p, environ)
+        self._ignore = self.__convert_ignore(p, environ)
         self._after = self.__convert_regex(p, 'after', environ)
         self._in = self.__convert_regex(p, 'in', environ)
         self._out = self.__convert_literal(p, 'out', environ)
@@ -203,6 +215,18 @@ class Pattern(object):
             return meanings
         else:
             return None
+
+    def __convert_ignore(self, p, environ=None):
+        if p.has_key('ignore'):
+            if  isinstance(p['ignore'], (tuple, list)):
+                tag_values = p['ignore']
+            else:
+                tag_values = list(str(p['ignore']))
+        else:
+            tag_values = None
+        
+        return tag_values
+                
 
     def __convert_regex(self, p, tag, environ=None):
         u"""
@@ -229,7 +253,7 @@ class Pattern(object):
             for x in normalized:
                 patterns.extend(get_meanings(x, meanings, self._mean))
 
-            return [Regex(x) for x in patterns]
+            return [Regex(x, self._ignore) for x in patterns]
         else:
             return None
 

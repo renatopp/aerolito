@@ -8,7 +8,10 @@ class TestRegex(unittest.TestCase):
 
     def test_init(self):
         regex = self.get_target(u'Hello')
-        
+        assert regex._expression == u'^Hello$'
+
+    def test_init_with_ignore(self):
+        regex = self.get_target(u',H!e,l,,,lo!', [u',', u'!'])
         assert regex._expression == u'^Hello$'
 
     def test_make_simple_expression(self):
@@ -43,6 +46,11 @@ class TestRegex(unittest.TestCase):
     def test_match_star(self):
         regex = self.get_target(u'Hello *')
         assert regex.match(u'Hello Renato')
+
+    def test_match_with_ignore(self):
+        regex = self.get_target(u'Hello, there!', [u',', '!'])
+        assert regex.match(u'Hello there')
+        assert regex.match(u'Hello there!!!')
 
     def test_get_star(self):
         regex = self.get_target(u'* first * sec \* ond *')

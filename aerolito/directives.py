@@ -40,6 +40,8 @@ class Directive(object):
     def run(self, *params):
         raise Exception(u'Not Implemented')
 
+#==============================================================================
+
 class Define(Directive):
     u"""
     Directive ``define`` store a given ``value`` in a ``variable`` in local 
