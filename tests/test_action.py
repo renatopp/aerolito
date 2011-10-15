@@ -2,49 +2,51 @@
 import unittest
 
 class TestAction(unittest.TestCase):
-    def getTarget(self, *args, **kw):
+    """Tests ``pattern.Action`` class"""
+
+    def get_target(self, *args, **kw):
         from aerolito.pattern import Action
         return Action(*args, **kw)
 
-    def getStubLiteral(self, value):
+    def get_stub_literal(self, value):
         class Literal: pass
         literal = Literal
         literal._value = value
         return literal
 
-    def getStub(self):
-        return lambda x, y, environ: x+y
+    def get_stub(self):
+        return lambda v: v[0]+v[1]
 
     def test_init(self):
-        stub = self.getStub()
-        action = self.getTarget(stub, [1, 2, 3])
+        stub = self.get_stub()
+        action = self.get_target(stub, [1, 2, 3])
         
-        assert action._function == stub
-        assert len(action._params) == 3
-
+        assert action._directive == stub
+        assert action._params == [1, 2, 3]
+    
     def test_run(self):
         environ = {
             'directives': {
-                'add': lambda x, y, environ: x+y,
-                'isdefined': lambda x, environ:True,
+                'add': lambda v: v[0]+v[1],
+                'isdefined': lambda v:True,
             },
-            'userid':1,
+            'user_id':1,
             'globals': {},
             'session': {
                 1: {
                     'stars': [],
-                    'locals': {
-
-                    },
+                    'locals': {},
                 }
             }
         }
 
-        stub = self.getStub()
-        action = self.getTarget(stub, 
-            [self.getStubLiteral(4), self.getStubLiteral(1)])
+        stub = self.get_stub()
+        action = self.get_target(stub, [
+            self.get_stub_literal(4), 
+            self.get_stub_literal(1)
+        ])
 
         assert action.run(environ) == 5
-        
+
 if __name__ == '__main__':
     unittest.main()

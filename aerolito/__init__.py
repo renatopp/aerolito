@@ -1,8 +1,10 @@
+# -*- coding:utf-8 -*-
+
 __author__ = 'Renato de Pontes Pereira <http://renatopp.com>'
-__version__ = '0.0.1-alpha'
+__version__ = '0.0.2-dev'
 __contributors__ = []
 __license__ = '''
-Copyright (c) 2011 Renato de Pontes Pereira
+Copyright (c) 2011 Renato de Pontes Pereira, renato.ppontes at gmail dot com
 
 Permission is hereby granted, free of charge, to any person obtaining a copy
 of this software and associated documentation files (the "Software"), to deal

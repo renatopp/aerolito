@@ -2,17 +2,16 @@
 import unittest
 
 class TestLiteral(unittest.TestCase):
-    def getTarget(self, *args, **kw):
+    """Tests ``pattern.Literal`` class"""
+
+    def get_target(self, *args, **kw):
         from aerolito.pattern import Literal
         return Literal(*args, **kw)
 
     def test_init(self):
-        literal = self.getTarget(u'Olá <name>!')
-        assert literal._value == u'Olá <name>!'
+        literal = self.get_target(u'Hello <name>!')
+        assert literal._value == u'Hello <name>!'
 
-    # def test_replace(self):
-    #     literal = self.getTarget(u'Oi <name>!')
-    #     assert literal.replace()
-        
+
 if __name__ == '__main__':
     unittest.main()

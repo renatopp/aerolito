@@ -1,4 +1,23 @@
-# -*- coding: utf-8 -*-
+# -*- coding:utf-8 -*-
+# Copyright (c) 2011 Renato de Pontes Pereira, renato.ppontes at gmail dot com
+# 
+# Permission is hereby granted, free of charge, to any person obtaining a copy 
+# of this software and associated documentation files (the "Software"), to deal 
+# in the Software without restriction, including without limitation the rights 
+# to use, copy, modify, merge, publish, distribute, sublicense, and/or sell 
+# copies of the Software, and to permit persons to whom the Software is 
+# furnished to do so, subject to the following conditions:
+#
+# The above copyright notice and this permission notice shall be included in all 
+# copies or substantial portions of the Software.
+#
+# THE SOFTWARE IS PROVIDED "AS IS", WITHOUT WARRANTY OF ANY KIND, EXPRESS OR 
+# IMPLIED, INCLUDING BUT NOT LIMITED TO THE WARRANTIES OF MERCHANTABILITY, 
+# FITNESS FOR A PARTICULAR PURPOSE AND NONINFRINGEMENT. IN NO EVENT SHALL THE 
+# AUTHORS OR COPYRIGHT HOLDERS BE LIABLE FOR ANY CLAIM, DAMAGES OR OTHER 
+# LIABILITY, WHETHER IN AN ACTION OF CONTRACT, TORT OR OTHERWISE, ARISING FROM, 
+# OUT OF OR IN CONNECTION WITH THE SOFTWARE OR THE USE OR OTHER DEALINGS IN THE 
+# SOFTWARE.
 """
 Utilities functions
 """
@@ -8,36 +27,36 @@ import itertools
 from aerolito import exceptions
 
 substitute = [
-    (u'ç', 'c'),
-    (u'ã', 'a'),
-    (u'á', 'a'),
-    (u'à', 'a'),
-    (u'â', 'a'),
-    (u'ä', 'a'),
-    (u'é', 'e'),
-    (u'è', 'e'),
-    (u'ê', 'e'),
-    (u'ë', 'e'),
-    (u'ó', 'o'),
-    (u'ò', 'o'),
-    (u'ô', 'o'),
-    (u'õ', 'o'),
-    (u'ö', 'o'),
-    (u'í', 'i'),
-    (u'ì', 'i'),
-    (u'î', 'i'),
-    (u'ï', 'i'),
-    (u'ú', 'u'),
-    (u'ù', 'u'),
-    (u'û', 'u'),
-    (u'ü', 'u'),
+    (u'ç', u'c'),
+    (u'ã', u'a'),
+    (u'á', u'a'),
+    (u'à', u'a'),
+    (u'â', u'a'),
+    (u'ä', u'a'),
+    (u'é', u'e'),
+    (u'è', u'e'),
+    (u'ê', u'e'),
+    (u'ë', u'e'),
+    (u'ó', u'o'),
+    (u'ò', u'o'),
+    (u'ô', u'o'),
+    (u'õ', u'o'),
+    (u'ö', u'o'),
+    (u'í', u'i'),
+    (u'ì', u'i'),
+    (u'î', u'i'),
+    (u'ï', u'i'),
+    (u'ú', u'u'),
+    (u'ù', u'u'),
+    (u'û', u'u'),
+    (u'ü', u'u'),
 ]
 
-def removeAccents(text):
+def remove_accents(text):
     u"""
     Removes accents of a ``text`` changing by correspondent letters, e.g.:
 
-    >>> removeAccents(u'ã')
+    >>> remove_accents(u'ã')
     'a'
     """
     for t, f in substitute:
@@ -46,7 +65,7 @@ def removeAccents(text):
 
     return text
 
-def getMeanings(text, meanings, localMeanings=None):
+def get_meanings(text, meanings, localMeanings=None):
     u"""
     Replaces meaning tags by their values, using a meaning list.
 
@@ -73,7 +92,7 @@ def getMeanings(text, meanings, localMeanings=None):
 
     return l
 
-def substitueSynonym(text, synonyms):
+def substitue_synonym(text, synonyms):
     u"""
     Replaces synonyms tags by their values, using a sysnonym list.
     """
@@ -84,13 +103,13 @@ def substitueSynonym(text, synonyms):
 
     return text
 
-def normalizeInput(text, synonyms=None):
+def normalize_input(text, synonyms=None):
     u"""
     Automatizes the task of remove accents and substitute synonyms.
     """
-    text = removeAccents(text)
+    text = remove_accents(text)
 
     if synonyms:
-        text = substitueSynonym(text, synonyms)
+        text = substitue_synonym(text, synonyms)
 
     return text

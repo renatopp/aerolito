@@ -1,4 +1,23 @@
-# -*- coding: utf-8 -*-
+# -*- coding:utf-8 -*-
+# Copyright (c) 2011 Renato de Pontes Pereira, renato.ppontes at gmail dot com
+# 
+# Permission is hereby granted, free of charge, to any person obtaining a copy 
+# of this software and associated documentation files (the "Software"), to deal 
+# in the Software without restriction, including without limitation the rights 
+# to use, copy, modify, merge, publish, distribute, sublicense, and/or sell 
+# copies of the Software, and to permit persons to whom the Software is 
+# furnished to do so, subject to the following conditions:
+#
+# The above copyright notice and this permission notice shall be included in all 
+# copies or substantial portions of the Software.
+#
+# THE SOFTWARE IS PROVIDED "AS IS", WITHOUT WARRANTY OF ANY KIND, EXPRESS OR 
+# IMPLIED, INCLUDING BUT NOT LIMITED TO THE WARRANTIES OF MERCHANTABILITY, 
+# FITNESS FOR A PARTICULAR PURPOSE AND NONINFRINGEMENT. IN NO EVENT SHALL THE 
+# AUTHORS OR COPYRIGHT HOLDERS BE LIABLE FOR ANY CLAIM, DAMAGES OR OTHER 
+# LIABILITY, WHETHER IN AN ACTION OF CONTRACT, TORT OR OTHERWISE, ARISING FROM, 
+# OUT OF OR IN CONNECTION WITH THE SOFTWARE OR THE USE OR OTHER DEALINGS IN THE 
+# SOFTWARE.
 
 import re
 import yaml
@@ -6,115 +25,130 @@ import codecs
 from aerolito import exceptions
 from aerolito import directives
 from aerolito.pattern import Pattern
-from aerolito.pattern import removeAccents
-from aerolito.pattern import normalizeInput
+from aerolito.pattern import remove_accents
+from aerolito.pattern import normalize_input
 
 class Kernel(object):
     u"""
     Aerolito's main object. 
 
-    Kernel use an environment variable for session and variables controlling. 
-    Session are used for user-dependent information storage, such inputs and 
+    Kernel uses an environment variable for session and variables controlling. 
+    Sessions are used for user-dependent information storage, such inputs and 
     outputs logs, and local variables. Variables are devided into 3 levels: 
-    *stars* for pattern-related, *locals* for user-related, and *globals*.
+    *stars* for pattern stars ``*``, *locals* for user-related informations, 
+    and *globals*.
+
+    By default kernel sets the first users as "default" key. It session can be 
+    acessed via ``_environ['session']['default']``. A kernel object have 4 
+    instance variables:
+
+    _patterns
+        A list of all patterns that kernel is handling.
+    
+    _synonyms
+        A list of all *synonyms*.
+
+    _meanings
+        A list of all *meanings*.
+
+    _environ
+        The environment variable.
     """
-    # List of patterns, synonyms and meanings file, loaded from configuration 
-    # file
-    _patterns = None
-    _synonyms = None
-    _meanings = None
 
-    # Environ variable
-    _environ = None
+    def __init__(self, config_file, encoding='utf-8'):
+        u"""Initializes a kernel object, creating the user "default". """
+        self._patterns = None
+        self._synonyms = None
+        self._meanings = None
+        self._environ = None
 
-    def __init__(self, configFile, encoding='utf-8'):
-        self.loadConfig(configFile, encoding=encoding)
+        self.load_config(config_file, encoding=encoding)
 
-        # Create a default user
-        self.addUser('default')
-        self.setUser('default')
+        self.add_user('default')
+        self.set_user('default')
 
-    def addUser(self, userid):
+    def add_user(self, user_id):
         u"""
-        Add a new use in session in environ variable, initializing the following
-        user-dependet variables:
+        Add a new user in session of environ variable, initializing the 
+        following user-dependet variables:
 
         - **inputs**: List with all inputs of an user.
-        - **responses**: List with all outputs for an user, without normalizing.
-        - **responses-normalized**: List with all outputs normalizeds.
+        - **responses**: List with all outputs for an user, without 
+          normalizing.
+        - **responses-normalized**: List with all outputs normalized.
         - **stars**: Pattern-related variables, is a list of stars that matches 
           with recognized pattern (i.e., words in the place of "\*"). Is filled 
           by ``after`` and ``in`` tags.
         - **locals**: Dictionary of local variables, setted via patterns in 
           ``when`` or ``post`` tags.
 
-        If is ``userid`` already in session, an exception
+        If ``user_id`` is already in session, an exception 
         ``UserAlreadyInSession`` is rised.
         """
-        if userid in self._environ:
-            raise exceptions.UserAlreadyInSession(
-                        u'User "%s" already in session'%str(userid))
+        if user_id in self._environ['session']:
+            raise exceptions.UserAlreadyInSession(user_id)
 
-        self._environ['session'][userid] = {}
-        session = self._environ['session'][userid]
+        self._environ['session'][user_id] = {}
+        session = self._environ['session'][user_id]
         session['inputs'] = []
         session['responses'] = []
         session['responses-normalized'] = []
         session['stars'] = []
         session['locals'] = {}
     
-    def setUser(self, userid):
+    def set_user(self, user_id):
         u"""
-        Defines who is the active user in session. Functions and objects use
-        ``_environ['userid']`` variable to catch the correct session.
+        Defines who is the active user in session. Functions and objects uses
+        ``_environ['user_id']`` variable to select the correct session.
         """
-        self._environ['userid'] = userid
+        self._environ['user_id'] = user_id
 
-    def removeUser(self, userid):
+    def remove_user(self, user_id):
         u"""
-        Remove an user of session.
+        Removes an user from session.
         """
-        if userid in self._environ['session']:
-            del self._environ['session'][userid]
+        if user_id in self._environ['session']:
+            del self._environ['session'][user_id]
 
-    def addDirective(self, name, directive):
+    def add_directive(self, name, directive):
         u"""
         Add a new directive in environment var.
         """
         if self._environ['directives'].has_key(name):
-            raise DuplicatedDirective(u'Duplicated directive name "%s"'%name)
+            raise DuplicatedDirective(name)
         
         self._environ['directives'][name] = directive(self._environ)
 
-    def __loadDirectives(self):
+    def __load_directives(self):
         u"""
-        Load default directives and directives of ``directives._directivePool``,
-        setted via ``directives.registerDirective`` by user.
+        Loads default directives and directives of 
+        ``directives._directive_pool``, setted via 
+        ``directives.register_directive`` by users.
         """
-        envdirectives = self._environ['directives']
-        envdirectives['define'] = directives.Define(self._environ)
-        envdirectives['delete'] = directives.Delete(self._environ)
-        envdirectives['isdefined'] = directives.IsDefined(self._environ)
-        envdirectives['isnotdefined'] = directives.IsNotDefined(self._environ)
-        envdirectives['equal'] = directives.Equal(self._environ)
-        envdirectives['notequal'] = directives.NotEqual(self._environ)
-        envdirectives['greaterthan'] = directives.GreaterThan(self._environ)
-        envdirectives['lessthan'] = directives.LessThan(self._environ)
-        envdirectives['greaterequal'] = directives.GreaterEqual(self._environ)
-        envdirectives['lessequal'] = directives.LessEqual(self._environ)
+        env_directives = self._environ['directives']
+        env_directives['define'] = directives.Define(self._environ)
+        env_directives['delete'] = directives.Delete(self._environ)
+        env_directives['isdefined'] = directives.IsDefined(self._environ)
+        env_directives['isnotdefined'] = directives.IsNotDefined(self._environ)
+        env_directives['equal'] = directives.Equal(self._environ)
+        env_directives['notequal'] = directives.NotEqual(self._environ)
+        env_directives['greaterthan'] = directives.GreaterThan(self._environ)
+        env_directives['lessthan'] = directives.LessThan(self._environ)
+        env_directives['greaterequal'] = directives.GreaterEqual(self._environ)
+        env_directives['lessequal'] = directives.LessEqual(self._environ)
 
-        for k, item in directives._directivePool.iteritems():
-            self.addDirective(k, item)
+        for k, item in directives._directive_pool.iteritems():
+            self.add_directive(k, item)
 
-    def loadConfig(self, configFile, encoding='utf-8'):
+    def load_config(self, config_file, encoding='utf-8'):
         u"""
-        Load the configuration file.
+        Loads the configuration file.
 
         Receive as parameters a name (with relative or full path) of 
-        configuration file, and their encoding. Default encoding is utf-8.
+        configuration file, and its encoding. Default encoding is utf-8.
 
-        The configuration file have a obrigatory tag **conversations**, that 
-        specify the conversation files. Is a list with the name (with relative 
+        The configuration file have a mandatory tag **conversations**, that 
+        specify the conversation files. Is a list with the names (with relative 
         or full path) of the files.
 
         Each kernel can load only one of configuration files, if this method is
@@ -122,46 +156,44 @@ class Kernel(object):
         informations (by environ variable).
         """
         try:
-            plaintext = codecs.open(configFile, 'rb', encoding).read()
-            config = yaml.load(plaintext)
-
-            # Initialize environment dict
-            self._environ = {
-                'userid': None,
-                'meanings': None,
-                'synonyms': None,
-                'directives': {},
-                'globals': config,
-                'session': {},
-            }
-
-            self.__loadDirectives()
-
-            if 'conversations' not in config:
-                raise exceptions.MissingTag(
-                        u'Tag "conversations" not found in configuration file.')
-
-            self._synonyms = {}
-            self._meanings = {}
-            self._patterns = []
-            
-            self._environ['synonyms'] = self._synonyms
-            self._environ['meanings'] = self._meanings
-
-            for synonymFile in config.get('synonyms', []):
-                self.loadSynonym(synonymFile, encoding)
-
-            for meaningFile in config.get('meanings', []):
-                self.loadMeaning(meaningFile, encoding)
-
-            for conversationFile in config['conversations']:
-                self.loadConversation(conversationFile, encoding)
-
+            plain_text = codecs.open(config_file, 'rb', encoding).read()
+            config = yaml.load(plain_text)
         except IOError:
-            raise exceptions.FileNotFound(
-                        u'Configuration file (%s) not found.'%str(configFile))
+            raise exceptions.FileNotFound(config_file)
 
-    def loadSynonym(self, synonymFile, encoding='utf-8'):
+        # Initialize environment dict
+        self._environ = {
+            'user_id': None,
+            'meanings': None,
+            'synonyms': None,
+            'directives': {},
+            'globals': config,
+            'session': {},
+        }
+
+        self.__load_directives()
+
+        if 'conversations' not in config:
+            raise exceptions.MissingTag('conversations', 'config')
+
+        self._synonyms = {}
+        self._meanings = {}
+        self._patterns = []
+        
+        self._environ['synonyms'] = self._synonyms
+        self._environ['meanings'] = self._meanings
+
+        for synonym_file in config.get('synonyms', []):
+            self.load_sysnonym(synonym_file, encoding)
+
+        for meaning_file in config.get('meanings', []):
+            self.load_meaning(meaning_file, encoding)
+
+        for conversation_file in config['conversations']:
+            self.load_conversation(conversation_file, encoding)
+
+
+    def load_sysnonym(self, synonym_file, encoding='utf-8'):
         u"""
         Load a synonym file.
 
@@ -173,28 +205,25 @@ class Kernel(object):
         The patterns are loaded in ``_synonyms``
         """
         try:
-            plaintext = codecs.open(synonymFile, 'rb', encoding).read()
-            data = yaml.load(plaintext)
-            
-            for synonyms in data:
-                if len(synonyms) < 2:
-                    raise exceptions.InvalidTagValue(
-                            u'Synonym list must have more than one element.')
-
-                key = removeAccents(synonyms[0]).lower()
-                vals = [removeAccents(value).lower() for value in synonyms[1:]]
-
-                if key in self._synonyms:
-                    raise exceptions.DuplicatedSynonym(
-                            u'Duplicated synonym "%s" in "%s.'%
-                            (str(key), str(synonymFile)))
-                
-                self._synonyms[key] = vals
+            plain_text = codecs.open(synonym_file, 'rb', encoding).read()
+            data = yaml.load(plain_text)
         except IOError:
-            raise exceptions.FileNotFound(
-                    u'Synonym file (%s) not found.'%str(synonymFile))
+            raise exceptions.FileNotFound(synonym_file)
+            
+        for synonyms in data:
+            if len(synonyms) < 2:
+                raise exceptions.InvalidTagValue(
+                        u'Synonym list must have more than one element.')
 
-    def loadMeaning(self, meaningFile, encoding='utf-8'):
+            key = remove_accents(synonyms[0]).lower()
+            vals = [remove_accents(value).lower() for value in synonyms[1:]]
+
+            if key in self._synonyms:
+                raise exceptions.DuplicatedSynonym(key, synonym_file)
+            
+            self._synonyms[key] = vals
+
+    def load_meaning(self, meaning_file, encoding='utf-8'):
         u"""
         Load a meaning file.
 
@@ -206,28 +235,25 @@ class Kernel(object):
         The patterns are loaded in ``_meanings``
         """
         try:
-            plaintext = codecs.open(meaningFile, 'rb', encoding).read()
-            data = yaml.load(plaintext)
-            
-            for meanings, values in data.items():
-                if len(values) == 0:
-                    raise exceptions.InvalidTagValue(
-                            u'Meaning list must have one or more element.')
-
-                key = removeAccents(meanings).lower()
-                vals = [normalizeInput(v, self._environ['synonyms']).lower() for v in values]
-
-                if key in self._meanings:
-                    raise exceptions.DuplicatedMeaning(
-                            u'Duplicated meaning "%s" in "%s.'%
-                            (str(key), str(meaningFile)))
-                
-                self._meanings[key] = vals
+            plain_text = codecs.open(meaning_file, 'rb', encoding).read()
+            data = yaml.load(plain_text)
         except IOError:
-            raise exceptions.FileNotFound(
-                    u'Meaning file (%s) not found.'%str(meaningFile))
+            raise exceptions.FileNotFound(meaning_file)
+            
+        for meanings, values in data.items():
+            if len(values) == 0:
+                raise exceptions.InvalidTagValue(
+                        u'Meaning list must have one or more element.')
 
-    def loadConversation(self, conversationFile, encoding='utf-8'):
+            key = remove_accents(meanings).lower()
+            vals = [normalize_input(v, self._environ['synonyms']).lower() for v in values]
+
+            if key in self._meanings:
+                raise exceptions.DuplicatedMeaning(key, meaning_file)
+            
+            self._meanings[key] = vals
+
+    def load_conversation(self, conversation_file, encoding='utf-8'):
         u"""
         Load a conversation file.
 
@@ -240,28 +266,26 @@ class Kernel(object):
         The patterns are loaded in ``_patterns``
         """
         try:
-            plaintext = codecs.open(conversationFile, 'rb', encoding).read()
-            data = yaml.load(plaintext)
-            if 'patterns' not in data:
-                raise exceptions.MissingTag(
-                    u'Tag "patterns" not found in conversation file (%s).'%
-                        str(conversationFile))
-
-            for p in data['patterns']:
-                pattern = Pattern(p, self._environ)
-                self._patterns.append(pattern)
+            plain_text = codecs.open(conversation_file, 'rb', encoding).read()
+            data = yaml.load(plain_text)
         except IOError:
-            raise exceptions.FileNotFound(
-                    u'Conversation file (%s) not found.'%str(conversationFile))
+            raise exceptions.FileNotFound(conversation_file)
+
+        if 'patterns' not in data:
+            raise exceptions.MissingTag('patterns', conversation_file)
+
+        for p in data['patterns']:
+            pattern = Pattern(p, self._environ)
+            self._patterns.append(pattern)
 
 
-    def respond(self, value, userid=None, registry=True):
+    def respond(self, value, user_id=None, registry=True):
         u"""
         Returns a response for a given user input.
 
         Parameters ``value`` is the user input.
 
-        If ``userid`` is informed, the kernel changes the session for this user,
+        If ``user_id`` is informed, the kernel changes the session for this user,
         if parameter is null, kernel keeps the active user. If user is not 
         informed and no user is active, kernel try to use the *'default'* user,
         if default is not avaliable (out of session pool) an exception is 
@@ -272,30 +296,28 @@ class Kernel(object):
 
         # Verify initialization
         if not self._environ :
-            raise exceptions.InitializationRequired(
-                    u'Initialization required: Load a configuration file')
+            raise exceptions.InitializationRequired('configuration')
         elif not self._patterns:
-            raise exceptions.InitializationRequired(
-                    u'Initialization required: Load a conversation file')
+            raise exceptions.InitializationRequired('conversation')
 
         # Verify user's session
-        if userid is not None:
-            self.setUser(userid)
-        elif self._environ['userid'] is None:
+        if user_id is not None:
+            self.set_user(user_id)
+        elif self._environ['user_id'] is None:
             if 'default' in self._environ['session']:
-                self.setUser('default')
+                self.set_user('default')
             else:
-                raise exceptions.NoUserActiveInSession(u'No user to session')
+                raise exceptions.NoUserActiveInSession()
 
         output = None
-        value = normalizeInput(value, self._synonyms)
+        value = normalize_input(value, self._synonyms)
         for pattern in self._patterns:
             if pattern.match(value, self._environ):
-                output = pattern.choiceOutput(self._environ)
-                pattern.executePost(self._environ)
+                output = pattern.choice_output(self._environ)
+                pattern.execute_post(self._environ)
                 break
             
-        session = self._environ['session'][self._environ['userid']]
+        session = self._environ['session'][self._environ['user_id']]
         if registry:
             session['inputs'].append(value)
         
@@ -308,6 +330,6 @@ class Kernel(object):
 
             if registry:
                 session['responses'].append(output)
-                session['responses-normalized'].append(normalizeInput(output, self._synonyms))
+                session['responses-normalized'].append(normalize_input(output, self._synonyms))
 
         return output

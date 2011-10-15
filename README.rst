@@ -10,7 +10,7 @@ Use example::
     from aerolito import Kernel
     kernel = Kernel('config.yml')
 
-    print kernel.Respond(u'Hello')
+    print kernel.respond(u'Hello')
 
 
 YAML Schema

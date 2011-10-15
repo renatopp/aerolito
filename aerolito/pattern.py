@@ -1,11 +1,30 @@
-# -*- coding: utf-8 -*-
+# -*- coding:utf-8 -*-
+# Copyright (c) 2011 Renato de Pontes Pereira, renato.ppontes at gmail dot com
+# 
+# Permission is hereby granted, free of charge, to any person obtaining a copy 
+# of this software and associated documentation files (the "Software"), to deal 
+# in the Software without restriction, including without limitation the rights 
+# to use, copy, modify, merge, publish, distribute, sublicense, and/or sell 
+# copies of the Software, and to permit persons to whom the Software is 
+# furnished to do so, subject to the following conditions:
+#
+# The above copyright notice and this permission notice shall be included in all 
+# copies or substantial portions of the Software.
+#
+# THE SOFTWARE IS PROVIDED "AS IS", WITHOUT WARRANTY OF ANY KIND, EXPRESS OR 
+# IMPLIED, INCLUDING BUT NOT LIMITED TO THE WARRANTIES OF MERCHANTABILITY, 
+# FITNESS FOR A PARTICULAR PURPOSE AND NONINFRINGEMENT. IN NO EVENT SHALL THE 
+# AUTHORS OR COPYRIGHT HOLDERS BE LIABLE FOR ANY CLAIM, DAMAGES OR OTHER 
+# LIABILITY, WHETHER IN AN ACTION OF CONTRACT, TORT OR OTHERWISE, ARISING FROM, 
+# OUT OF OR IN CONNECTION WITH THE SOFTWARE OR THE USE OR OTHER DEALINGS IN THE 
+# SOFTWARE.
 
 import re
 import random
 from aerolito import exceptions
-from aerolito.utils import removeAccents
-from aerolito.utils import normalizeInput
-from aerolito.utils import getMeanings
+from aerolito.utils import remove_accents
+from aerolito.utils import normalize_input
+from aerolito.utils import get_meanings
 
 def replace(literal, environ):
     """
@@ -30,8 +49,8 @@ def replace(literal, environ):
     globais ou locais, a expressão é substituída por uma string vazia  ('').
     """
 
-    session = environ['session'][environ['userid']]
-    p = '\<([\d|\s|\w]*)\>'
+    session = environ['session'][environ['user_id']]
+    p = r'\<([\d|\s|\w]*)\>'
     _vars = re.findall(p, unicode(literal._value), re.I)
 
     result = literal._value
@@ -64,6 +83,7 @@ class Literal(object):
 
     def __repr__(self):
         return '<Literal %s>' % self._value
+
 
 class Action(object):
     """
@@ -112,7 +132,7 @@ class Regex(object):
         """
         Recebe um texto e converte em expressão regular
         """
-        # self._expression = removeAccents(text)
+        # self._expression = remove_accents(text)
         self._expression = re.escape(text)
         self._expression = self._expression.replace('\\*', '(.*)')
         self._expression = self._expression.replace('\\\\(.*)', '\*')
@@ -138,6 +158,7 @@ class Regex(object):
     def __repr__(self):
         return '<Regex %s>' % self._expression
 
+
 class Pattern(object):
     u"""
     Representa um padrão de conversação.
@@ -160,14 +181,14 @@ class Pattern(object):
         Receve um dicionário ``p`` com as tags (vem do arquivo de conversação) e
         a variável ``_environ``.
         """
-        self._mean = self.__convertMean(p, environ)
-        self._after = self.__convertRegex(p, 'after', environ)
-        self._in = self.__convertRegex(p, 'in', environ)
-        self._out = self.__convertLiteral(p, 'out', environ)
-        self._when = self.__convertAction(p, 'when', environ)
-        self._post = self.__convertAction(p, 'post', environ)
+        self._mean = self.__convert_mean(p, environ)
+        self._after = self.__convert_regex(p, 'after', environ)
+        self._in = self.__convert_regex(p, 'in', environ)
+        self._out = self.__convert_literal(p, 'out', environ)
+        self._when = self.__convert_action(p, 'when', environ)
+        self._post = self.__convert_action(p, 'post', environ)
 
-    def __convertMean(self, p, environ=None):
+    def __convert_mean(self, p, environ=None):
         meanings = {}
         synonyms = environ['synonyms']
         if p.has_key('mean'):
@@ -176,14 +197,14 @@ class Pattern(object):
                 raise exceptions.InvalidTagValue(u'Invalid value for tag mean')
 
             for k in tagValues:
-                key = removeAccents(k)
-                meanings[key] = [normalizeInput(v, synonyms) for v in tagValues[k]]
+                key = remove_accents(k)
+                meanings[key] = [normalize_input(v, synonyms) for v in tagValues[k]]
                 
             return meanings
         else:
             return None
 
-    def __convertRegex(self, p, tag, environ=None):
+    def __convert_regex(self, p, tag, environ=None):
         u"""
         Converte para Regex os valores de uma tag ``tag`` dentro do dicionário
         ``p``. 
@@ -203,16 +224,16 @@ class Pattern(object):
             else:
                 values = [tagValues]
 
-            normalized = [normalizeInput(unicode(x), synonyms) for x in values]
+            normalized = [normalize_input(unicode(x), synonyms) for x in values]
             patterns = []
             for x in normalized:
-                patterns.extend(getMeanings(x, meanings, self._mean))
+                patterns.extend(get_meanings(x, meanings, self._mean))
 
             return [Regex(x) for x in patterns]
         else:
             return None
 
-    def __convertLiteral(self, p, tag, environ=None):
+    def __convert_literal(self, p, tag, environ=None):
         u"""
         Converte para Literal os valores de uma tag ``tag`` dentro do dicionário
         ``p``. 
@@ -233,13 +254,13 @@ class Pattern(object):
 
             patterns = []
             for x in values:
-                patterns.extend(getMeanings(x, meanings, self._mean))
+                patterns.extend(get_meanings(x, meanings, self._mean))
 
             return [Literal(unicode(x)) for x in patterns]
         else:
             return None
 
-    def __convertAction(self, p, tag, environ):
+    def __convert_action(self, p, tag, environ):
         u"""
         Converte para Action os valores de uma tag ``tag`` dentro do dicionário
         ``p``. A action só é criada quando existir uma directive correspondente,
@@ -279,7 +300,6 @@ class Pattern(object):
         else:
             return None
 
-
     def match(self, value, environ):
         u"""
         Verifica se o ``value`` é associado com o padrão. A sequência de 
@@ -292,7 +312,7 @@ class Pattern(object):
         3. Tag When: Todas ações da tag devem retornar um valor verdadeiro.
         """
         self._stars = None
-        session = environ['session'][environ['userid']]
+        session = environ['session'][environ['user_id']]
 
         if self._after:
             for regex in self._after:
@@ -318,13 +338,13 @@ class Pattern(object):
         
         return True
 
-    def choiceOutput(self, environ):
+    def choice_output(self, environ):
         u"""
         Escolhe uma resposta aleatória, substituindo as variaveis necessárias.
         """
         return replace(random.choice(self._out), environ)
     
-    def executePost(self, environ):
+    def execute_post(self, environ):
         u"""
         Executa as ações da tag post.
         """
