@@ -31,6 +31,7 @@ class AerolitoException(Exception):
         return self.message%self.values
 
 class InvalidTagValue(AerolitoException): pass
+
 class MissingTag(AerolitoException):
     message = u'Tag "%s" not found in %s file.'
 

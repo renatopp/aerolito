@@ -1,7 +1,7 @@
 # -*- coding:utf-8 -*-
 
 __author__ = 'Renato de Pontes Pereira <http://renatopp.com>'
-__version__ = '0.0.2-dev'
+__version__ = '0.1'
 __contributors__ = []
 __license__ = '''
 Copyright (c) 2011 Renato de Pontes Pereira, renato.ppontes at gmail dot com

@@ -7,15 +7,20 @@ except ImportError as e:
     from distutils.core import setup
 
 long_description = '''
-    Aerolito is an AIML alternative based on YAML. Aerolito provides features 
-    for natural language processing simulation.
+Aerolito is an AIML alternative based on YAML. Aerolito provides features 
+for natural language processing simulation. Example of usage::
+
+    from aerolito import Kernel
+    kernel = Kernel('config.yml')
+
+    print kernel.respond(u'Hello')
 '''
 
 setup(
     name='Aerolito',
-    version='0.0.1',
-    url='https://github.com/renatopp/aerolito',
-    download_url='https://github.com/renatopp/aerolito/tarball/master',
+    version='0.1',
+    url='https://renatopp.com/aerolito',
+    download_url='https://github.com/renatopp/aerolito/',
     license='MIT License',
     author='Renato de Pontes Pereira',
     author_email='renato.ppontes@gmail.com',

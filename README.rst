@@ -52,7 +52,7 @@ and specify the conversation and special files. An example of a config.yml::
 
 
     # config.yml
-    version   : v0.1-alpha
+    version   : v0.1
     botname   : chapolin
     variable1 : value
     variable2 : value

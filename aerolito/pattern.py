@@ -28,25 +28,14 @@ from aerolito.utils import get_meanings
 
 def replace(literal, environ):
     """
-    Substitui o valor de um ``Literal`` por uma variável no dicionario 
-    ``_environ``.
+    Replace the value of an ``Literal`` by variables in ``_environ`` 
+    dictionary.
 
-    A função procura as variáveis na sequência:
+    This function looks for variables in the sequence:
 
-    1. ``session['stars']``: Nas variáveis temporárias retiradas da associação
-       da entrada, só é acessada através da forma *<star>* ou *<star N>*. Quando
-       for chamado *<star N>* é retornado o valor na posição *N*, começando com
-       0 (zero). O *<star>* é apenas um atalho para *<star 0>*.
-    2. ``_environ['globals']``: Variáveis globais, carregadas do arquivo de 
-       configuração.
-    3. ``session['locals']``: Vaiáveis locais, são definidas e acessadas 
-       geralmente através padrão de conversação (via Directives).
-
-    No caso do dicionário global e local, as variáveis são acessadas através da
-    expressão *<variablename>*. 
-
-    Se uma *<variablename>* não é encontrada na lista de *stars*, variaveis 
-    globais ou locais, a expressão é substituída por uma string vazia  ('').
+    1. ``session['stars']``
+    2. ``_environ['globals']``
+    3. ``session['locals']``
     """
 
     session = environ['session'][environ['user_id']]
@@ -75,7 +64,7 @@ def replace(literal, environ):
 
 class Literal(object):
     """
-    Um objeto Literal representa um elemento na tag ``pattern:out``.
+    A Literal object represents an element of ``pattern:out`` tag.
     """
 
     def __init__(self, value):
@@ -87,26 +76,21 @@ class Literal(object):
 
 class Action(object):
     """
-    As Actions são representaçãos dos elementos das tags ``pattern:when`` e
-    ``pattern:post``. Elas são o link entre a Aerolito e funções do python.
-
-    A funções disponíveis são registradas através das Directives.
+    The Actions are representations of the elements of ``pattern:when`` tag and
+    ``pattern:post``. They are the link of Aerolito and python functions.
     """
 
     def __init__(self, directive, params):
         """
-        Recebe uma função e uma lista de parâmetros. Os parâmetros são tratados
-        posteriormente no caso de haver algumas expressão para substituição, por
-        exemplo com *<variable>*. Os valores dos parâmetros são definidos nos 
-        arquivos de conversação.
+        Receives a directive and a parameters list.
         """
         self._directive = directive
         self._params = params
 
     def run(self, environ):
         """
-        Executa a ``_function`` passando os parâmetros ``_params`` e a variável
-        ``_environ``. 
+        Executes  the ``_directive`` with ``_params`` and the ``_environ``
+        variable.
         """
         params = []
         if self._params:
@@ -117,20 +101,18 @@ class Action(object):
 
 class Regex(object):
     """
-    Os objetos Regex representam os elementos das tags ``pattern:after`` e
-    ``pattern:in``.
+    The Regex objects represents the elements of ``pattern:after`` tag and 
+    ``pattern:in``. It converts the text received in initialization into 
+    regular expressions. This class is responsible to accept (or not) an user 
+    input.
 
-    Regex convert o texto passado na inicilização (valores das tags) em uma
-    expressão regular. Essa classe é responsável por aceitar ou não a entrada
-    do usuário com o valor das tags. 
-    
-    Após a assimilação de alguma tag. O Regex guarda os valores adquiridos pela
-    expressão especial "\*".
+    After matchs some tag. A Regex object stores the values grouped by special
+    expression "\*".
     """
 
     def __init__(self, text, ignore=None):
         """
-        Recebe um texto e converte em expressão regular
+        Receive a text and converts it into a regular expression.
         """
         # self._expression = remove_accents(text)
         if ignore:
@@ -152,8 +134,8 @@ class Regex(object):
     
     def match(self, value):
         """
-        Tenta reconhecer o ``value`` com a ``_expression``. Se reconhecer guarda
-        os valores do *<star>*.
+        Try to match the ``value`` with the ``_expression``. If matched, it 
+        extract the ``<star>`` values.
         """
         if self._ignore:
             value = re.sub(self._ignore, '', value)
@@ -172,25 +154,29 @@ class Regex(object):
 
 class Pattern(object):
     u"""
-    Representa um padrão de conversação.
+    Represents a conversation pattern.
 
-    Um padrão é dividido em 5 tags, usadas na seguinte ordem:
+    A patterns is divided into 7 tags, used in the following order:
 
-    1. **after**: Condição para selecionar o padrão. O valor da tag é comparado
-       com a última resposta, se for associado então o padrão é válido.
-    2. **in**: Condição para selecionar o padrão. O valor da tag é comparado com
-       a entrada do usuário.
-    3. **when**: Condição para selecionar o padrão. É um conjunto de ações que
-       devem retornar uma valor verdadeiro para que o padrão seja aceito.
-    4. **out**: Valores de retorno, são as respostas para o usuário.
-    5. **post**: Conjunto de ações que são executadas depois de um padrão ser 
-       aceito e uma resposta ser selecionada.
+    1. **mean**: considered as local meaning, is used like a meaning file.
+    2. **ignore**: a string or a list of string with characters that will be 
+       ignored in pattern match.
+    3. **after**: condition to select the pattern. The value of the tag is 
+       compared with the last response, if the values matchs the pattern is 
+       valid.
+    4. **in**: condition to select the pattern. The value of the tag is 
+       compared with the user input.
+    5. **when**: condition to select the pattern. Is a set of actions that must
+       return True to validated the pattern.
+    6. **out**: return values, they are the user response.
+    7. **post**: set of actions that are executed after a pattern is accepted 
+       and a response selected.
     """
 
     def __init__(self, p, environ):
         u"""
-        Receve um dicionário ``p`` com as tags (vem do arquivo de conversação) e
-        a variável ``_environ``.
+        Receive a dict ``p`` with the tags (that comes from conversation file)
+        and the ``_environ`` variable.
         """
         self._mean = self.__convert_mean(p, environ)
         self._ignore = self.__convert_ignore(p, environ)
@@ -230,10 +216,8 @@ class Pattern(object):
 
     def __convert_regex(self, p, tag, environ=None):
         u"""
-        Converte para Regex os valores de uma tag ``tag`` dentro do dicionário
-        ``p``. 
-
-        Aceita uma lista de strings ou uma string.
+        Converts the values of ``tag`` to ``Regex``s. Accepts a list of string 
+        or just a string.
         """
         synonyms = environ['synonyms']
         meanings = environ['meanings']
@@ -259,10 +243,8 @@ class Pattern(object):
 
     def __convert_literal(self, p, tag, environ=None):
         u"""
-        Converte para Literal os valores de uma tag ``tag`` dentro do dicionário
-        ``p``. 
-
-        Aceita uma lista de strings ou uma string.
+        Converts the values of ``tag`` to ``Literal``s. Accepts a list of 
+        string or just a string.
         """
         meanings = environ['meanings']
         if p.has_key(tag):
@@ -286,14 +268,13 @@ class Pattern(object):
 
     def __convert_action(self, p, tag, environ):
         u"""
-        Converte para Action os valores de uma tag ``tag`` dentro do dicionário
-        ``p``. A action só é criada quando existir uma directive correspondente,
-        se a directive não existir uma exceção ``InvalidTagValue`` é
-        lançada.
+        Converts the values of ``tag`` to ``Action``s, an action just can be 
+        created when there is a correspondent directive. An ``InvalidTagValue``
+        is raised if there is no correspondent directive.
 
-        Aceita uma lista de dicionarios ou um dicionario. O(s) dicionário(s) 
-        pode(m) ter mais de uma chave (chave é o nome da directive) onde os 
-        valores das chaves são os parâmetros.
+        This method accepts a list of dicts or just a dict. The dictionaries 
+        can have more than one key, each key means a name of a directive and 
+        the values are the parameters.
         """
         if p.has_key(tag):
             tagValues = p[tag]
@@ -326,14 +307,16 @@ class Pattern(object):
 
     def match(self, value, environ):
         u"""
-        Verifica se o ``value`` é associado com o padrão. A sequência de 
-        verificação é a seguinte:
+        Verify if ``value`` is associated with the pattern. The verification
+        sequence is as follow:
 
-        1. Tag After: Pelo menos um elemento da tag deve ser associada com a 
-           última resposta.
-        2. Tag In: Pelo menos um elemento da tag deve ser associada com o 
+        1. Tag After: at least one element of tag must be associated with the
+           last response.
+        2. Tag In: at least one element of tag must be associated with the 
            ``value``.
-        3. Tag When: Todas ações da tag devem retornar um valor verdadeiro.
+        3. Tag When: all actions of this tag must return True.
+
+        A pattern just can match if all three conditions are accepted.
         """
         self._stars = None
         session = environ['session'][environ['user_id']]
@@ -364,13 +347,13 @@ class Pattern(object):
 
     def choice_output(self, environ):
         u"""
-        Escolhe uma resposta aleatória, substituindo as variaveis necessárias.
+        Choices one random response, replacing the veriables
         """
         return replace(random.choice(self._out), environ)
     
     def execute_post(self, environ):
         u"""
-        Executa as ações da tag post.
+        Executes the actions of post tag
         """
         if self._post:
             for action in self._post:
